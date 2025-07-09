@@ -1,0 +1,20 @@
+---
+title: "Data Analysis Notebook"
+output: html_notebook
+---
+
+```{r}
+#Authors: [INSERT NAMES HERE]
+#Author Date: 
+#Purpose: The purpose of this notebook is to house all data set transformation, cleansing, visualization, statistical analysis, and note-taking for the 2025 CU Athletic Department Sports Science Internship Program
+
+#LAST UPDATED: 
+
+#Including helpful libraries
+library(tidyverse)
+library(readxl)
+library(aod)
+
+#Example of importing our first data set from a CSV file to a data frame.
+df <- read.csv("./foo/bar.csv")
+```
