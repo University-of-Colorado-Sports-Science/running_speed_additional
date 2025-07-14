@@ -14,7 +14,131 @@ output: html_notebook
 library(tidyverse)
 library(readxl)
 library(aod)
-
-#Example of importing our first data set from a CSV file to a data frame.
-df <- read.csv("./foo/bar.csv")
 ```
+
+
+# Data Cleaning
+```{r Loading in the data sets}
+#loading in the Catapult data to look at sprinting values
+Catapult_Session <- read_csv("data-sets/data-sets-uncompressed/data-sets-compressed/Running Imbalance and Speed/Catapult Session - Outdoor FB.csv")
+
+#loading in the Historical Running data to look at running imbalance values
+Historical_Running <- read_csv("data-sets/data-sets-uncompressed/data-sets-compressed/Running Imbalance and Speed/Compiled Historical Running Imbalance FB.csv")
+
+#loading in the Incident Report to look at HSIs
+Incident_Report <- read_csv("data-sets/data-sets-uncompressed/data-sets-compressed/Running Imbalance and Speed/Incident Report FB IDs.csv")
+
+```
+
+```{r Cleaning Catapult_Session}
+Catapult_Session_clean <- Catapult_Session %>%
+  #putting the date as a date class
+  mutate(Date = as.Date(Date, "%m/%d/%Y")) %>%
+  #only selecting important columns for this analysis
+  select(anon_id, Date, Age, Primary.Position, Total.Distance, Period.Name, Total.Duration..min., Velocity.Band.1.Total.Distance, Velocity.Band.2.Total.Distance, Velocity.Band.3.Total.Distance, Velocity.Band.4.Total.Distance, Velocity.Band.5.Total.Distance, Velocity.Band.6.Total.Distance, Velocity.Band.7.Total.Distance, Velocity.Band.8.Total.Distance, Maximum.Velocity, Average.Velocity) %>%
+  #calculating each player's maximum velocity
+  group_by(anon_id) %>%
+  mutate(Player.Max.Velocity = max(na.omit(Maximum.Velocity))) %>%
+  ungroup() %>%
+  #only selecting data from January 1, 2024 and on
+  filter(Date >= "2024-01-01")
+
+head(Catapult_Session_clean)
+```
+
+```{r Cleaning Historical_Running}
+Historical_Running_clean <- Historical_Running %>%
+  #taking out rows that don't have data
+  filter(Running.Imbalance != "n/a") %>%
+  #putting running imbalance as a number and converting the date to a date class
+  mutate(Running.Imbalance = as.numeric(Running.Imbalance),
+         Date = as.Date(Date, "%m/%d/%Y")) %>%
+  #only using data from January 1, 2024 and on
+  filter(Date >= "2024-01-01")
+
+head(Historical_Running_clean)
+```
+
+```{r Cleaning Incident_Report}
+Incident_Report_clean <- Incident_Report %>%
+  #filtering for only hamstring injuries
+  filter(OSICS14.Code == "TM1")  %>%
+  #getting the date of the injury as a date class
+  mutate(Date.of.Injury = as.Date(Date.of.Injury...Onset.of.symptoms, "%m/%d/%Y"),
+         Examination.Date = as.Date(Examination.Date, "%m/%d/%Y")) %>%
+  #only selecting relevant columns for this analysis
+  select(anon_id, Position, Date.of.Injury, Time.of.Injury, Examination.Date, Side, OSICS.Injury.Diagnosis, Coach.s.Diagnosis, Recurrence.of.Injury, Choose.Season, Onset.of.Symptoms, Injury.Prognosis, General.Mechanism, Specific.Mechanism, Injured.While., Type.of.Event, Season., Status, Days.in.Status)
+
+head(Incident_Report_clean)
+```
+
+# Section 1: Running Speed
+
+## How often are athletes reaching ≥ 90% maximum velocity throughout a training season?
+
+## Should we consider the number of sprinting efforts that athletes are completing?
+
+## Are relative efforts and bands more advantageous than the absolute bands provided?
+
+## How does sprinting exposure (# of efforts, % max reached) relate to incidence of hamstring injuries?
+
+
+
+# Section 2: Running Imbalance
+
+## What is the variation at the team level and at each individual athlete level?
+```{r Running imbalance measurements for whole team since January 1, 2024}
+#calculating mean and variance for team data
+mean_var <- sample_mean_and_variance(Historical_Running_clean$Running.Imbalance)
+
+#making scatter plot of team running imbalance data throughout season
+ggplot(Historical_Running_clean, aes(Date, Running.Imbalance)) +
+  geom_point(alpha = 0.3) +
+  geom_hline(yintercept = mean_var[[1]], color = "#CFB87C") +
+  geom_hline(yintercept = mean_var[[1]] + sqrt(mean_var[[2]])) +
+  geom_hline(yintercept = mean_var[[1]] - sqrt(mean_var[[2]])) +
+  geom_hline(yintercept = mean_var[[1]] + (2*sqrt(mean_var[[2]])), color = "#A2A4A3") +
+  geom_hline(yintercept = mean_var[[1]] - (2*sqrt(mean_var[[2]])), color = "#A2A4A3") +
+  labs(title = "Team Running Imbalance Since January 1, 2024",
+       subtitle = "\u03BC = 0.08623412, \u03C3^2 = 14.94215")
+
+#making histogram of team running imbalance data
+ggplot(Historical_Running_clean, aes(Running.Imbalance)) +
+  geom_histogram()
+```
+
+```{r}
+injured_IDs <- unique(Incident_Report_clean$anon_id)
+uninjured_IDs <- unique((Historical_Running_clean %>%
+  filter(!anon_id %in% injured_IDs))$anon_id)
+
+ggplot(data=Historical_Running_clean[Historical_Running_clean$anon_id %in% injured_IDs,], aes(Running.Imbalance)) +
+  geom_histogram() +
+  xlim(-21,21) +
+  labs(title = "Running Imbalance for Players with HSI since January 1, 2024")
+
+ggplot(data=Historical_Running_clean[Historical_Running_clean$anon_id %in% uninjured_IDs,], aes(Running.Imbalance)) +
+  geom_histogram() +
+  xlim(-21,21) +
+  labs(title = "Running Imbalance for Players without HSI since January 1, 2024")
+
+ggplot(data=Historical_Running_clean[Historical_Running_clean$anon_id %in% uninjured_IDs,], aes(Running.Imbalance)) +
+  geom_histogram(alpha = 0.75) +
+  geom_histogram(data = Historical_Running_clean[Historical_Running_clean$anon_id %in% injured_IDs,], aes(Running.Imbalance), fill = "#CFB87C", alpha = 0.75) +
+  xlim(-21,21) +
+  labs(title = "Running Imbalance for Players with and without HSI since January 1, 2024")
+```
+```{r}
+ggplot(data=Historical_Running_clean[Historical_Running_clean$anon_id %in% injured_IDs,], aes(Date, Running.Imbalance)) + 
+  geom_point(alpha = 0.3) +
+  ylim(-21,21) +
+  labs(title = "Running Imbalance for Players with HSI since January 1, 2024")
+
+ggplot(data=Historical_Running_clean[Historical_Running_clean$anon_id %in% uninjured_IDs,], aes(Date, Running.Imbalance)) + 
+  geom_point(alpha = 0.3) +
+  ylim(-21,21) +
+  labs(title = "Running Imbalance for Players without HSI since January 1, 2024")
+```
+## What is a meaningful change? What red flags should go off when we see a week-to-week change in running imbalance?
+
+## Is running imbalance sensitive enough of a metric to use as a prognosis tool versus a rehab tool?
