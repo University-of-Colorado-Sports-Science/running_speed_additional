@@ -54,7 +54,10 @@ Historical_Running_clean <- Historical_Running %>%
   mutate(Running.Imbalance = as.numeric(Running.Imbalance),
          Date = as.Date(Date, "%m/%d/%Y")) %>%
   #only using data from January 1, 2024 and on
-  filter(Date >= "2024-01-01")
+  filter(Date >= "2024-01-01") %>%
+  group_by(anon_id) %>%
+  mutate(Days.Since.Start = as.numeric(Date - min(Date))) %>%
+  ungroup()
 
 head(Historical_Running_clean)
 ```
@@ -64,10 +67,11 @@ Incident_Report_clean <- Incident_Report %>%
   #filtering for only hamstring injuries
   filter(OSICS14.Code == "TM1")  %>%
   #getting the date of the injury as a date class
-  mutate(Date.of.Injury = as.Date(Date.of.Injury...Onset.of.symptoms, "%m/%d/%Y"),
+  mutate(Date = as.Date(Date, "%m/%d/%Y"),
+         Date.of.Injury = as.Date(Date.of.Injury...Onset.of.symptoms, "%m/%d/%Y"),
          Examination.Date = as.Date(Examination.Date, "%m/%d/%Y")) %>%
   #only selecting relevant columns for this analysis
-  select(anon_id, Position, Date.of.Injury, Time.of.Injury, Examination.Date, Side, OSICS.Injury.Diagnosis, Coach.s.Diagnosis, Recurrence.of.Injury, Choose.Season, Onset.of.Symptoms, Injury.Prognosis, General.Mechanism, Specific.Mechanism, Injured.While., Type.of.Event, Season., Status, Days.in.Status)
+  select(anon_id, Position, Date, Date.of.Injury, Time.of.Injury, Side, OSICS.Injury.Diagnosis, Coach.s.Diagnosis, Recurrence.of.Injury, Choose.Season, Onset.of.Symptoms, Injury.Prognosis, General.Mechanism, Specific.Mechanism, Injured.While., Type.of.Event, Season., Status, Days.in.Status)
 
 head(Incident_Report_clean)
 ```
@@ -87,6 +91,17 @@ head(Incident_Report_clean)
 # Section 2: Running Imbalance
 
 ## What is the variation at the team level and at each individual athlete level?
+
+```{r}
+Historical_Running_clean %>%
+  summarize(Team_Variation = var(Running.Imbalance))
+
+Historical_Running_clean %>%
+  group_by(anon_id) %>%
+  summarize(Player_Variation = var(na.omit(Running.Imbalance))) %>%
+  ungroup()
+```
+
 ```{r Running imbalance measurements for whole team since January 1, 2024}
 #calculating mean and variance for team data
 mean_var <- sample_mean_and_variance(Historical_Running_clean$Running.Imbalance)
@@ -99,46 +114,169 @@ ggplot(Historical_Running_clean, aes(Date, Running.Imbalance)) +
   geom_hline(yintercept = mean_var[[1]] - sqrt(mean_var[[2]])) +
   geom_hline(yintercept = mean_var[[1]] + (2*sqrt(mean_var[[2]])), color = "#A2A4A3") +
   geom_hline(yintercept = mean_var[[1]] - (2*sqrt(mean_var[[2]])), color = "#A2A4A3") +
-  labs(title = "Team Running Imbalance Since January 1, 2024",
+  labs(title = "Team Running Imbalance Since January 1, 2024", y="Running Imbalance (%)",
        subtitle = "\u03BC = 0.08623412, \u03C3^2 = 14.94215")
 
 #making histogram of team running imbalance data
 ggplot(Historical_Running_clean, aes(Running.Imbalance)) +
-  geom_histogram()
+  geom_histogram() +
+  labs(title = "Team Running Imbalance Since January 1, 2024", x="Running Imbalance")
 ```
 
-```{r}
-injured_IDs <- unique(Incident_Report_clean$anon_id)
+```{r Looking at distributions for injured and uninjured separately}
+#taking the IDs of players who are and aren't injured
+all_IDs <- unique(Historical_Running_clean$anon_id)
+injured_IDs <- intersect(unique(Incident_Report_clean$anon_id), all_IDs)
 uninjured_IDs <- unique((Historical_Running_clean %>%
   filter(!anon_id %in% injured_IDs))$anon_id)
 
+#making histogram for running imbalance of all injured athletes
 ggplot(data=Historical_Running_clean[Historical_Running_clean$anon_id %in% injured_IDs,], aes(Running.Imbalance)) +
-  geom_histogram() +
+  geom_histogram(fill = "#CFB87C", alpha = 0.75) +
+  #adding in 95% confidence interval
+  geom_vline(xintercept = quantile(Historical_Running_clean[Historical_Running_clean$anon_id %in% injured_IDs,]$Running.Imbalance, 0.025), color = "#CFB87C") +
+  geom_vline(xintercept = quantile(Historical_Running_clean[Historical_Running_clean$anon_id %in% injured_IDs,]$Running.Imbalance, 0.975), color = "#CFB87C") +
   xlim(-21,21) +
   labs(title = "Running Imbalance for Players with HSI since January 1, 2024")
 
+#making histogram for running imbalance of all uninjured athletes
 ggplot(data=Historical_Running_clean[Historical_Running_clean$anon_id %in% uninjured_IDs,], aes(Running.Imbalance)) +
-  geom_histogram() +
+  geom_histogram(fill = "black", alpha = 0.75) +
+  #adding in 95% confidence interval
+  geom_vline(xintercept = quantile(Historical_Running_clean[Historical_Running_clean$anon_id %in% uninjured_IDs,]$Running.Imbalance, 0.025)) +
+  geom_vline(xintercept = quantile(Historical_Running_clean[Historical_Running_clean$anon_id %in% uninjured_IDs,]$Running.Imbalance, 0.975)) +
   xlim(-21,21) +
   labs(title = "Running Imbalance for Players without HSI since January 1, 2024")
 
+#Plotting injured and uninjured histograms over top one another
 ggplot(data=Historical_Running_clean[Historical_Running_clean$anon_id %in% uninjured_IDs,], aes(Running.Imbalance)) +
   geom_histogram(alpha = 0.75) +
+  #adding in 95% CI for uninjured players
+  geom_vline(xintercept = quantile(Historical_Running_clean[Historical_Running_clean$anon_id %in% uninjured_IDs,]$Running.Imbalance, 0.025)) +
+  geom_vline(xintercept = quantile(Historical_Running_clean[Historical_Running_clean$anon_id %in% uninjured_IDs,]$Running.Imbalance, 0.975)) +
   geom_histogram(data = Historical_Running_clean[Historical_Running_clean$anon_id %in% injured_IDs,], aes(Running.Imbalance), fill = "#CFB87C", alpha = 0.75) +
+  #adding in 95% CI for injured players
+  geom_vline(xintercept = quantile(Historical_Running_clean[Historical_Running_clean$anon_id %in% injured_IDs,]$Running.Imbalance, 0.025), color = "#CFB87C") +
+  geom_vline(xintercept = quantile(Historical_Running_clean[Historical_Running_clean$anon_id %in% injured_IDs,]$Running.Imbalance, 0.975), color = "#CFB87C") +
   xlim(-21,21) +
   labs(title = "Running Imbalance for Players with and without HSI since January 1, 2024")
 ```
-```{r}
+
+```{r looking at trends for injured and uninjured players since 1-1-2024}
+#making scatter plot of running imbalance data for injured players
 ggplot(data=Historical_Running_clean[Historical_Running_clean$anon_id %in% injured_IDs,], aes(Date, Running.Imbalance)) + 
   geom_point(alpha = 0.3) +
   ylim(-21,21) +
   labs(title = "Running Imbalance for Players with HSI since January 1, 2024")
 
+#making scatter plot of running imbalance for uninjured players
 ggplot(data=Historical_Running_clean[Historical_Running_clean$anon_id %in% uninjured_IDs,], aes(Date, Running.Imbalance)) + 
   geom_point(alpha = 0.3) +
   ylim(-21,21) +
   labs(title = "Running Imbalance for Players without HSI since January 1, 2024")
 ```
+
+
+### Testing to see if significantly different
+```{r Bootstrapping variances of data sets to see if they are different between groups}
+#Splitting up the data sets into injured and uninjured groups
+injured_data <- Historical_Running_clean[Historical_Running_clean$anon_id %in% injured_IDs,] %>%
+  group_by(anon_id) %>%
+  mutate(Player.Variance = var(Running.Imbalance)) %>%
+  ungroup()
+
+uninjured_data <- Historical_Running_clean[Historical_Running_clean$anon_id %in% uninjured_IDs,] %>%
+  group_by(anon_id) %>%
+  mutate(Player.Variance = var(Running.Imbalance)) %>%
+  ungroup()
+
+
+#making a data frame to hold all of the within group variances
+group_variances <- data.frame(injured_var = rep(NA,1000),
+                uninjured_var = rep(NA,1000),
+                diff_in_var = rep(NA, 1000))
+
+#bootstrap for variances, 1000 iterations
+for(i in 1:1000){
+  #random seed
+  set.seed(i) 
+  
+  #taking samples from each of the data sets, same number of rows, replacement true
+  injured_sample <- sample_n(injured_data, replace = TRUE, size = 1672)
+  uninjured_sample <- sample_n(uninjured_data, replace=TRUE, size = 2391)
+  
+  #storing the calculated variances in data frame
+  group_variances[i,1] = var(injured_sample$Running.Imbalance)
+  group_variances[i,2] = var(uninjured_sample$Running.Imbalance)
+  group_variances[i,3] = group_variances[i,1] - group_variances[i,2]
+}
+```
+
+
+
+```{r Plotting results from bootstrap of variances}
+ggplot(data=group_variances, aes(diff_in_var)) +
+  geom_histogram() +
+  geom_vline(xintercept = quantile(group_variances$diff_in_var, 0.025), color= "#CFB87C") +
+  geom_vline(xintercept = quantile(group_variances$diff_in_var, 0.975), color= "#CFB87C")
+
+ggplot(data=group_variances) +
+  geom_histogram(aes(injured_var), alpha = 0.75, fill ="#CFB87C") +
+  geom_histogram(aes(uninjured_var), alpha = 0.75)
+```
+```{r Boostrapping average variance between players for injured and uninjured players}
+#making a data frame to hold all of the average player variances between groups
+mean_player_variances <- data.frame(injured_var = rep(NA,1000),
+                uninjured_var = rep(NA,1000),
+                diff_in_var = rep(NA, 1000))
+
+for(i in 1:1000){
+  #random seed
+  set.seed(i) 
+  
+  #taking samples from each of the data sets, same number of rows, replacement true
+  injured_sample <- sample_n(injured_data, replace = TRUE, size = 1672)
+  uninjured_sample <- sample_n(uninjured_data, replace=TRUE, size = 2391)
+  
+  #storing the calculated variances in data frame
+  mean_player_variances[i,1] = mean(na.omit(injured_sample$Player.Variance))
+  mean_player_variances[i,2] = mean(na.omit(uninjured_sample$Player.Variance))
+  mean_player_variances[i,3] = mean_player_variances[i,1] - mean_player_variances[i,2]
+}
+
+```
+
+```{r Plotting results from bootstrap of player variances}
+ggplot(data = variances, aes(diff_in_var)) +
+  geom_histogram() +
+  geom_vline(xintercept = quantile(variances$diff_in_var, 0.025), color= "#CFB87C") +
+  geom_vline(xintercept = quantile(variances$diff_in_var, 0.975), color= "#CFB87C")
+
+ggplot(data=variances) +
+  geom_histogram(aes(injured_var), alpha = 0.75, fill ="#CFB87C") +
+  geom_histogram(aes(uninjured_var), alpha = 0.75)
+```
+
 ## What is a meaningful change? What red flags should go off when we see a week-to-week change in running imbalance?
 
+```{r}
+#Running through all injured athletes and looking at their trends
+for(i in 1:23){
+  running_temp <- Historical_Running_clean[Historical_Running_clean$anon_id==injured_IDs[i],]
+  injury_temp <- Incident_Report_clean[Incident_Report_clean$anon_id==injured_IDs[i],]
+  
+  plot <- ggplot(running_temp, aes(Date, Running.Imbalance)) +
+    geom_line() +
+    geom_line(aes(y=Running.Imbalance.MA), color = "#A2A4A3") +
+    geom_vline(data=injury_temp, aes(xintercept=Date.of.Injury), color="#CFB87C") +
+    geom_text(data=injury_temp, aes(x=Date.of.Injury, y=ifelse(Side=="Right", max(running_temp$Running.Imbalance),min(na.omit(running_temp$Running.Imbalance))), label=Side, angle=90)) +
+    labs(title = "Running Imbalance and Date of Injury", subtitle = injured_IDs[i])+ scale_x_date(limits = c(min(running_temp$Date), as.Date("2025-04-22"))) +
+    geom_hline(yintercept = 0, color = "#A2A4A3", linewidth = 0.5)
+  print(plot)
+}
+
+```
+
 ## Is running imbalance sensitive enough of a metric to use as a prognosis tool versus a rehab tool?
+ASK BLAKE ABOUT HOW INCIDENT REPORT IS SET UP TOMORROW
+Can I sum up the number of days in status minus "full go" to see how long they were out for?
