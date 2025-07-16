@@ -279,4 +279,4 @@ for(i in 1:23){
 
 ## Is running imbalance sensitive enough of a metric to use as a prognosis tool versus a rehab tool?
 ASK BLAKE ABOUT HOW INCIDENT REPORT IS SET UP TOMORROW
-Can I sum up the number of days in status minus "full go" to see how long they were out for?
+Can I sum up the number of days in status without "full go" to see how long they were out for?
