@@ -55,6 +55,8 @@ Historical_Running_clean <- Historical_Running %>%
          Date = as.Date(Date, "%m/%d/%Y")) %>%
   #only using data from January 1, 2024 and on
   filter(Date >= "2024-01-01") %>%
+  mutate(X=1:4063) %>%
+  #making days January 1, 2024
   group_by(anon_id) %>%
   mutate(Days.Since.Start = as.numeric(Date - min(Date))) %>%
   ungroup()
@@ -65,15 +67,39 @@ head(Historical_Running_clean)
 ```{r Cleaning Incident_Report}
 Incident_Report_clean <- Incident_Report %>%
   #filtering for only hamstring injuries
-  filter(OSICS14.Code == "TM1")  %>%
+  filter(OSICS14.Code == "TM1",
+         Status != "Full Go")  %>%
   #getting the date of the injury as a date class
   mutate(Date = as.Date(Date, "%m/%d/%Y"),
          Date.of.Injury = as.Date(Date.of.Injury...Onset.of.symptoms, "%m/%d/%Y"),
          Examination.Date = as.Date(Examination.Date, "%m/%d/%Y")) %>%
   #only selecting relevant columns for this analysis
-  select(anon_id, Position, Date, Date.of.Injury, Time.of.Injury, Side, OSICS.Injury.Diagnosis, Coach.s.Diagnosis, Recurrence.of.Injury, Choose.Season, Onset.of.Symptoms, Injury.Prognosis, General.Mechanism, Specific.Mechanism, Injured.While., Type.of.Event, Season., Status, Days.in.Status)
+  select(anon_id, Position, Date, Date.of.Injury, Time.of.Injury, Side, OSICS.Injury.Diagnosis, Coach.s.Diagnosis, Recurrence.of.Injury, Choose.Season, Onset.of.Symptoms, Injury.Prognosis, General.Mechanism, Specific.Mechanism, Injured.While., Type.of.Event, Season., Status, Days.in.Status) %>%
+  group_by(anon_id, Date.of.Injury) %>%
+  mutate(Days.Out = sum(Days.in.Status)) %>%
+  ungroup()
 
 head(Incident_Report_clean)
+```
+
+```{r Identifying players that have data in both data sets}
+#taking the IDs of players who are and aren't injured
+all_IDs <- unique(Historical_Running_clean$anon_id)
+#taking IDs that were injured and also have running imbalance data
+injured_IDs <- intersect(unique(Incident_Report_clean$anon_id), all_IDs)
+#taking all players with running imbalance data that don't have an injury
+uninjured_IDs <- unique((Historical_Running_clean %>%
+  filter(!anon_id %in% injured_IDs))$anon_id)
+```
+
+```{r Filtering out players without proper data}
+#injured players who also have running imbalance data
+Incident_Report_clean <- Incident_Report_clean %>%
+  filter(anon_id %in% injured_IDs)
+
+#all players that only have running imbalance data or have both running imbalace data and incidence report
+Historical_Running_clean <- Historical_Running_clean %>%
+  filter(anon_id %in% injured_IDs | anon_id %in% uninjured_IDs)
 ```
 
 # Section 1: Running Speed
@@ -92,28 +118,31 @@ head(Incident_Report_clean)
 
 ## What is the variation at the team level and at each individual athlete level?
 
-```{r}
+```{r Looking at team and player variances of running imbalance}
+#team variation
 Historical_Running_clean %>%
   summarize(Team_Variation = var(Running.Imbalance))
 
+#individual player variation
 Historical_Running_clean %>%
   group_by(anon_id) %>%
   summarize(Player_Variation = var(na.omit(Running.Imbalance))) %>%
-  ungroup()
+  ungroup() 
 ```
 
 ```{r Running imbalance measurements for whole team since January 1, 2024}
 #calculating mean and variance for team data
-mean_var <- sample_mean_and_variance(Historical_Running_clean$Running.Imbalance)
+team_mean <- mean(Historical_Running_clean$Running.Imbalance)
+team_sd <- sd(Historical_Running_clean$Running.Imbalance)
 
 #making scatter plot of team running imbalance data throughout season
 ggplot(Historical_Running_clean, aes(Date, Running.Imbalance)) +
   geom_point(alpha = 0.3) +
-  geom_hline(yintercept = mean_var[[1]], color = "#CFB87C") +
-  geom_hline(yintercept = mean_var[[1]] + sqrt(mean_var[[2]])) +
-  geom_hline(yintercept = mean_var[[1]] - sqrt(mean_var[[2]])) +
-  geom_hline(yintercept = mean_var[[1]] + (2*sqrt(mean_var[[2]])), color = "#A2A4A3") +
-  geom_hline(yintercept = mean_var[[1]] - (2*sqrt(mean_var[[2]])), color = "#A2A4A3") +
+  geom_hline(yintercept = team_mean, color = "#CFB87C") +
+  geom_hline(yintercept = team_mean + team_sd) +
+  geom_hline(yintercept = team_mean - team_sd) +
+  geom_hline(yintercept = team_mean + (2*team_sd), color = "#A2A4A3") +
+  geom_hline(yintercept = team_mean - (2*team_sd), color = "#A2A4A3") +
   labs(title = "Team Running Imbalance Since January 1, 2024", y="Running Imbalance (%)",
        subtitle = "\u03BC = 0.08623412, \u03C3^2 = 14.94215")
 
@@ -126,7 +155,9 @@ ggplot(Historical_Running_clean, aes(Running.Imbalance)) +
 ```{r Looking at distributions for injured and uninjured separately}
 #taking the IDs of players who are and aren't injured
 all_IDs <- unique(Historical_Running_clean$anon_id)
+#taking IDs that were injured and also have running imbalance data
 injured_IDs <- intersect(unique(Incident_Report_clean$anon_id), all_IDs)
+#taking all players with running imbalance data that don't have an injury
 uninjured_IDs <- unique((Historical_Running_clean %>%
   filter(!anon_id %in% injured_IDs))$anon_id)
 
@@ -247,36 +278,156 @@ for(i in 1:1000){
 ```
 
 ```{r Plotting results from bootstrap of player variances}
-ggplot(data = variances, aes(diff_in_var)) +
+ggplot(data = mean_player_variances, aes(diff_in_var)) +
   geom_histogram() +
-  geom_vline(xintercept = quantile(variances$diff_in_var, 0.025), color= "#CFB87C") +
-  geom_vline(xintercept = quantile(variances$diff_in_var, 0.975), color= "#CFB87C")
+  geom_vline(xintercept = quantile(mean_player_variances$diff_in_var, 0.025), color= "#CFB87C") +
+  geom_vline(xintercept = quantile(mean_player_variances$diff_in_var, 0.975), color= "#CFB87C")
 
-ggplot(data=variances) +
+ggplot(data=mean_player_variances) +
   geom_histogram(aes(injured_var), alpha = 0.75, fill ="#CFB87C") +
-  geom_histogram(aes(uninjured_var), alpha = 0.75)
+  geom_histogram(aes(uninjured_var), alpha = 0.75) +
+  labs(x="Average Variance")
 ```
 
 ## What is a meaningful change? What red flags should go off when we see a week-to-week change in running imbalance?
+```{r Calculating weeks before and after injury occurance based on date}
+#getting running imbalances for just injured players
+Injured_Historical_Running <- Historical_Running_clean %>%
+  filter(anon_id %in% injured_IDs)
+
+#making new column to represent when in time injury would be, negative means before injury and positive means after injury
+Injured_Historical_Running$Weeks.After.Injury <- rep(NA, 1658)
+Injured_Historical_Running$Injury.Count <- rep(NA, 1658)
+
+#go through all of the injured players in the data set
+for(i in 1:22){
+  #get the dates each player was injured
+  injury_dates <- unique(Incident_Report_clean[Incident_Report_clean$anon_id==injured_IDs[i],]$Date.of.Injury)
+  
+  for(j in 1:length(injury_dates)){
+    #calculate dates for 1, 2, 3, 4 weeks before and after each injury date
+    past_1 <- injury_dates[j]-7
+    past_2 <- injury_dates[j]-14
+    past_3 <- injury_dates[j]-21
+    past_4 <- injury_dates[j]-28
+    future_1 <- injury_dates[j]+7
+    future_2 <- injury_dates[j]+14
+    future_3 <- injury_dates[j]+21
+    future_4 <- injury_dates[j]+28
+    
+    #compare date for each player to date of injury, store in Weeks.After.Injury column
+    
+    #first week after injury
+    Injured_Historical_Running[Injured_Historical_Running$anon_id==injured_IDs[i] &
+                                 Injured_Historical_Running$Date > injury_dates[j] & 
+                                 Injured_Historical_Running$Date<=future_1,]$Weeks.After.Injury <- "1"
+    Injured_Historical_Running[Injured_Historical_Running$anon_id==injured_IDs[i] &
+                                 Injured_Historical_Running$Date > injury_dates[j] & 
+                                 Injured_Historical_Running$Date<=future_1,]$Injury.Count <- as.character(j)
+    
+    #second week after injury
+    Injured_Historical_Running[Injured_Historical_Running$anon_id==injured_IDs[i] &
+                                 Injured_Historical_Running$Date > future_1 & 
+                                 Injured_Historical_Running$Date<=future_2,]$Weeks.After.Injury <- "2"
+    Injured_Historical_Running[Injured_Historical_Running$anon_id==injured_IDs[i] &
+                                 Injured_Historical_Running$Date > future_1 & 
+                                 Injured_Historical_Running$Date<=future_2,]$Injury.Count <- as.character(j)
+    
+    #third week after injury
+    Injured_Historical_Running[Injured_Historical_Running$anon_id==injured_IDs[i] &
+                                 Injured_Historical_Running$Date > future_2 & 
+                                 Injured_Historical_Running$Date<=future_3,]$Weeks.After.Injury <- "3"
+    Injured_Historical_Running[Injured_Historical_Running$anon_id==injured_IDs[i] &
+                                 Injured_Historical_Running$Date > future_2 & 
+                                 Injured_Historical_Running$Date<=future_3,]$Injury.Count <- as.character(j)
+    
+    #fourth week after injury
+    Injured_Historical_Running[Injured_Historical_Running$anon_id==injured_IDs[i] &
+                                 Injured_Historical_Running$Date > future_3 & 
+                                 Injured_Historical_Running$Date<=future_4,]$Weeks.After.Injury <- "4"
+    Injured_Historical_Running[Injured_Historical_Running$anon_id==injured_IDs[i] &
+                                 Injured_Historical_Running$Date > future_3 & 
+                                 Injured_Historical_Running$Date<=future_4,]$Injury.Count <- as.character(j)    
+    #week right before injury
+    Injured_Historical_Running[Injured_Historical_Running$anon_id==injured_IDs[i] &
+                                 Injured_Historical_Running$Date < injury_dates[j] & 
+                                 Injured_Historical_Running$Date>=past_1,]$Weeks.After.Injury <- "-1"
+    Injured_Historical_Running[Injured_Historical_Running$anon_id==injured_IDs[i] &
+                                 Injured_Historical_Running$Date < injury_dates[j] & 
+                                 Injured_Historical_Running$Date>=past_1,]$Injury.Count <- as.character(j)
+    #two weeks before injury
+    Injured_Historical_Running[Injured_Historical_Running$anon_id==injured_IDs[i] &
+                                 Injured_Historical_Running$Date < past_1 & 
+                                 Injured_Historical_Running$Date>=past_2,]$Weeks.After.Injury <- "-2"
+    Injured_Historical_Running[Injured_Historical_Running$anon_id==injured_IDs[i] &
+                                 Injured_Historical_Running$Date < past_1 & 
+                                 Injured_Historical_Running$Date>=past_2,]$Injury.Count <- as.character(j)
+    
+    #three weeks before injury
+    Injured_Historical_Running[Injured_Historical_Running$anon_id==injured_IDs[i] &
+                                 Injured_Historical_Running$Date < past_2 & 
+                                 Injured_Historical_Running$Date>=past_3,]$Weeks.After.Injury <- "-3"
+    Injured_Historical_Running[Injured_Historical_Running$anon_id==injured_IDs[i] &
+                                 Injured_Historical_Running$Date < past_2 & 
+                                 Injured_Historical_Running$Date>=past_3,]$Injury.Count <- as.character(j)
+        
+    #four weeks before injury
+    Injured_Historical_Running[Injured_Historical_Running$anon_id==injured_IDs[i] &
+                                 Injured_Historical_Running$Date < past_3 & 
+                                 Injured_Historical_Running$Date>=past_4,]$Weeks.After.Injury <- "-4"
+    Injured_Historical_Running[Injured_Historical_Running$anon_id==injured_IDs[i] &
+                                 Injured_Historical_Running$Date < past_3 & 
+                                 Injured_Historical_Running$Date>=past_4,]$Injury.Count <- as.character(j)
+    
+    #Date of Injury
+    Injured_Historical_Running[Injured_Historical_Running$anon_id==injured_IDs[i] &
+                                 Injured_Historical_Running$Date == injury_dates[j],]$Weeks.After.Injury <- "0"
+    Injured_Historical_Running[Injured_Historical_Running$anon_id==injured_IDs[i] &
+                                 Injured_Historical_Running$Date == injury_dates[j],]$Injury.Count <- as.character(j)
+  }
+}
+
+
+#making weeks after injury into a factor and combining data sets back together
+Injured_Historical_Running$Weeks.After.Injury <- as.factor(Injured_Historical_Running$Weeks.After.Injury)
+Historical_Running_clean <- left_join(Historical_Running_clean, Injured_Historical_Running)
+```
 
 ```{r}
-#Running through all injured athletes and looking at their trends
-for(i in 1:23){
-  running_temp <- Historical_Running_clean[Historical_Running_clean$anon_id==injured_IDs[i],]
-  injury_temp <- Incident_Report_clean[Incident_Report_clean$anon_id==injured_IDs[i],]
-  
-  plot <- ggplot(running_temp, aes(Date, Running.Imbalance)) +
+for(i in 1:22){
+  p <- ggplot(data=Historical_Running_clean[Historical_Running_clean$anon_id==injured_IDs[i],], aes(Date, Running.Imbalance)) +
     geom_line() +
-    geom_line(aes(y=Running.Imbalance.MA), color = "#A2A4A3") +
-    geom_vline(data=injury_temp, aes(xintercept=Date.of.Injury), color="#CFB87C") +
-    geom_text(data=injury_temp, aes(x=Date.of.Injury, y=ifelse(Side=="Right", max(running_temp$Running.Imbalance),min(na.omit(running_temp$Running.Imbalance))), label=Side, angle=90)) +
-    labs(title = "Running Imbalance and Date of Injury", subtitle = injured_IDs[i])+ scale_x_date(limits = c(min(running_temp$Date), as.Date("2025-04-22"))) +
-    geom_hline(yintercept = 0, color = "#A2A4A3", linewidth = 0.5)
-  print(plot)
+    geom_point(aes(color=Weeks.After.Injury)) +
+    geom_vline(xintercept = Incident_Report_clean[Incident_Report_clean$anon_id==injured_IDs,]$Date.of.Injury) +
+    labs(title=injured_IDs[i])
+  
+  print(p)
+}
+```
+
+```{r}
+Historical_Running_clean <- Historical_Running_clean %>%
+  group_by(anon_id, Weeks.After.Injury) %>%
+  mutate(Weeks.After.Injury.Variability = var(Running.Imbalance),
+         Weeks.After.Injury.Mean = mean(abs(Running.Imbalance))) %>%
+  ungroup()
+```
+
+
+```{r}
+for(i in 1:22){
+  p <- ggplot(data=Historical_Running_clean[Historical_Running_clean$anon_id==injured_IDs[i],], aes(Date, Weeks.After.Injury.Mean, color=Weeks.After.Injury)) +
+    geom_point() +
+    geom_vline(xintercept = Incident_Report_clean[Incident_Report_clean$anon_id==injured_IDs,]$Date.of.Injury) +
+    labs(title=injured_IDs[i])
+  
+  print(p)
 }
 
 ```
 
 ## Is running imbalance sensitive enough of a metric to use as a prognosis tool versus a rehab tool?
-ASK BLAKE ABOUT HOW INCIDENT REPORT IS SET UP TOMORROW
-Can I sum up the number of days in status without "full go" to see how long they were out for?
+
+
+
+
