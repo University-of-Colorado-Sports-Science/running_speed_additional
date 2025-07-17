@@ -416,6 +416,7 @@ Historical_Running_clean <- Historical_Running_clean %>%
 
 ```{r}
 for(i in 1:22){
+  #going through loop
   p <- ggplot(data=Historical_Running_clean[Historical_Running_clean$anon_id==injured_IDs[i],], aes(Date, Weeks.After.Injury.Mean, color=Weeks.After.Injury)) +
     geom_point() +
     geom_vline(xintercept = Incident_Report_clean[Incident_Report_clean$anon_id==injured_IDs,]$Date.of.Injury) +
