@@ -97,9 +97,17 @@ uninjured_IDs <- unique((Historical_Running_clean %>%
 Incident_Report_clean <- Incident_Report_clean %>%
   filter(anon_id %in% injured_IDs)
 
-#all players that only have running imbalance data or have both running imbalace data and incidence report
+#all players that only have running imbalance data or have both running imbalance data and incidence report
 Historical_Running_clean <- Historical_Running_clean %>%
   filter(anon_id %in% injured_IDs | anon_id %in% uninjured_IDs)
+```
+
+```{r Removing all unimportant objects created during cleaning}
+#removing all_IDs vector and uncleaned data sets
+remove(all_IDs)
+remove(Incident_Report)
+remove(Historical_Running)
+remove(Catapult_Session)
 ```
 
 # Section 1: Running Speed
@@ -241,6 +249,7 @@ for(i in 1:1000){
   group_variances[i,2] = var(uninjured_sample$Running.Imbalance)
   group_variances[i,3] = group_variances[i,1] - group_variances[i,2]
 }
+
 ```
 
 
@@ -315,75 +324,87 @@ for(i in 1:22){
     future_3 <- injury_dates[j]+21
     future_4 <- injury_dates[j]+28
     
+    #Calculating how many injuries this is
+    injury_count <- as.character((length(injury_dates)) - j + 1)
+    
     #compare date for each player to date of injury, store in Weeks.After.Injury column
     
     #first week after injury
     Injured_Historical_Running[Injured_Historical_Running$anon_id==injured_IDs[i] &
                                  Injured_Historical_Running$Date > injury_dates[j] & 
                                  Injured_Historical_Running$Date<=future_1,]$Weeks.After.Injury <- "1"
+    
     Injured_Historical_Running[Injured_Historical_Running$anon_id==injured_IDs[i] &
                                  Injured_Historical_Running$Date > injury_dates[j] & 
-                                 Injured_Historical_Running$Date<=future_1,]$Injury.Count <- as.character(j)
+                                 Injured_Historical_Running$Date<=future_1,]$Injury.Count <- injury_count
     
     #second week after injury
     Injured_Historical_Running[Injured_Historical_Running$anon_id==injured_IDs[i] &
                                  Injured_Historical_Running$Date > future_1 & 
                                  Injured_Historical_Running$Date<=future_2,]$Weeks.After.Injury <- "2"
+    
     Injured_Historical_Running[Injured_Historical_Running$anon_id==injured_IDs[i] &
                                  Injured_Historical_Running$Date > future_1 & 
-                                 Injured_Historical_Running$Date<=future_2,]$Injury.Count <- as.character(j)
+                                 Injured_Historical_Running$Date<=future_2,]$Injury.Count <- injury_count
     
     #third week after injury
     Injured_Historical_Running[Injured_Historical_Running$anon_id==injured_IDs[i] &
                                  Injured_Historical_Running$Date > future_2 & 
                                  Injured_Historical_Running$Date<=future_3,]$Weeks.After.Injury <- "3"
+    
     Injured_Historical_Running[Injured_Historical_Running$anon_id==injured_IDs[i] &
                                  Injured_Historical_Running$Date > future_2 & 
-                                 Injured_Historical_Running$Date<=future_3,]$Injury.Count <- as.character(j)
+                                 Injured_Historical_Running$Date<=future_3,]$Injury.Count <- injury_count
     
     #fourth week after injury
     Injured_Historical_Running[Injured_Historical_Running$anon_id==injured_IDs[i] &
                                  Injured_Historical_Running$Date > future_3 & 
                                  Injured_Historical_Running$Date<=future_4,]$Weeks.After.Injury <- "4"
+    
     Injured_Historical_Running[Injured_Historical_Running$anon_id==injured_IDs[i] &
                                  Injured_Historical_Running$Date > future_3 & 
-                                 Injured_Historical_Running$Date<=future_4,]$Injury.Count <- as.character(j)    
+                                 Injured_Historical_Running$Date<=future_4,]$Injury.Count <- injury_count    
     #week right before injury
     Injured_Historical_Running[Injured_Historical_Running$anon_id==injured_IDs[i] &
                                  Injured_Historical_Running$Date < injury_dates[j] & 
                                  Injured_Historical_Running$Date>=past_1,]$Weeks.After.Injury <- "-1"
+    
     Injured_Historical_Running[Injured_Historical_Running$anon_id==injured_IDs[i] &
                                  Injured_Historical_Running$Date < injury_dates[j] & 
-                                 Injured_Historical_Running$Date>=past_1,]$Injury.Count <- as.character(j)
+                                 Injured_Historical_Running$Date>=past_1,]$Injury.Count <- injury_count
     #two weeks before injury
     Injured_Historical_Running[Injured_Historical_Running$anon_id==injured_IDs[i] &
                                  Injured_Historical_Running$Date < past_1 & 
                                  Injured_Historical_Running$Date>=past_2,]$Weeks.After.Injury <- "-2"
+    
     Injured_Historical_Running[Injured_Historical_Running$anon_id==injured_IDs[i] &
                                  Injured_Historical_Running$Date < past_1 & 
-                                 Injured_Historical_Running$Date>=past_2,]$Injury.Count <- as.character(j)
+                                 Injured_Historical_Running$Date>=past_2,]$Injury.Count <- injury_count
     
     #three weeks before injury
     Injured_Historical_Running[Injured_Historical_Running$anon_id==injured_IDs[i] &
                                  Injured_Historical_Running$Date < past_2 & 
                                  Injured_Historical_Running$Date>=past_3,]$Weeks.After.Injury <- "-3"
+    
     Injured_Historical_Running[Injured_Historical_Running$anon_id==injured_IDs[i] &
                                  Injured_Historical_Running$Date < past_2 & 
-                                 Injured_Historical_Running$Date>=past_3,]$Injury.Count <- as.character(j)
+                                 Injured_Historical_Running$Date>=past_3,]$Injury.Count <- injury_count
         
     #four weeks before injury
     Injured_Historical_Running[Injured_Historical_Running$anon_id==injured_IDs[i] &
                                  Injured_Historical_Running$Date < past_3 & 
                                  Injured_Historical_Running$Date>=past_4,]$Weeks.After.Injury <- "-4"
+    
     Injured_Historical_Running[Injured_Historical_Running$anon_id==injured_IDs[i] &
                                  Injured_Historical_Running$Date < past_3 & 
-                                 Injured_Historical_Running$Date>=past_4,]$Injury.Count <- as.character(j)
+                                 Injured_Historical_Running$Date>=past_4,]$Injury.Count <- injury_count
     
     #Date of Injury
     Injured_Historical_Running[Injured_Historical_Running$anon_id==injured_IDs[i] &
                                  Injured_Historical_Running$Date == injury_dates[j],]$Weeks.After.Injury <- "0"
+    
     Injured_Historical_Running[Injured_Historical_Running$anon_id==injured_IDs[i] &
-                                 Injured_Historical_Running$Date == injury_dates[j],]$Injury.Count <- as.character(j)
+                                 Injured_Historical_Running$Date == injury_dates[j],]$Injury.Count <- injury_count
   }
 }
 
@@ -391,7 +412,12 @@ for(i in 1:22){
 #making weeks after injury into a factor and combining data sets back together
 Injured_Historical_Running$Weeks.After.Injury <- as.factor(Injured_Historical_Running$Weeks.After.Injury)
 Historical_Running_clean <- left_join(Historical_Running_clean, Injured_Historical_Running)
+
+#getting rid of junk that was from the loop
+remove(future_1, future_2, future_3, future_4, i, injury_count, injury_dates, j, past_1, past_2, past_3, past_4)
+remove(Injured_Historical_Running)
 ```
+
 
 ```{r}
 for(i in 1:22){
@@ -404,6 +430,7 @@ for(i in 1:22){
   print(p)
 }
 ```
+
 
 ```{r}
 Historical_Running_clean <- Historical_Running_clean %>%
