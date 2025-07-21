@@ -36,7 +36,7 @@ Catapult_Session_clean <- Catapult_Session %>%
   #putting the date as a date class
   mutate(Date = as.Date(Date, "%m/%d/%Y")) %>%
   #only selecting important columns for this analysis
-  select(anon_id, Date, Age, Primary.Position, Total.Distance, Period.Name, Total.Duration..min., Velocity.Band.1.Total.Distance, Velocity.Band.2.Total.Distance, Velocity.Band.3.Total.Distance, Velocity.Band.4.Total.Distance, Velocity.Band.5.Total.Distance, Velocity.Band.6.Total.Distance, Velocity.Band.7.Total.Distance, Velocity.Band.8.Total.Distance, Maximum.Velocity, Average.Velocity, Hit.90.Percent.Max, Date.of.Last.90.Effort, Days.Since.Last.90.Effort) %>%
+  select(anon_id, Date, Age, Primary.Position, Total.Distance, Period.Name, Total.Duration..min., Velocity.Band.1.Total.Distance, Velocity.Band.2.Total.Distance, Velocity.Band.3.Total.Distance, Velocity.Band.4.Total.Distance, Velocity.Band.5.Total.Distance, Velocity.Band.6.Total.Distance, Velocity.Band.7.Total.Distance, Velocity.Band.8.Total.Distance, Velocity.Band.2.Total.Effort.Count, Velocity.Band.3.Total.Effort.Count, Velocity.Band.4.Total.Effort.Count, Velocity.Band.5.Total.Effort.Count, Velocity.Band.6.Total.Effort.Count, Velocity.Band.7.Total.Effort.Count, Velocity.Band.8.Total.Effort.Count, Maximum.Velocity, Average.Velocity, Hit.90.Percent.Max, Date.of.Last.90.Effort, Days.Since.Last.90.Effort, Hit.Max.Velocity., Date.of.All.Time.Max.Velocity, Days.Since.Max.Velocity) %>%
   #calculating each player's maximum velocity
   group_by(anon_id) %>%
   mutate(Player.Max.Velocity = max(na.omit(Maximum.Velocity))) %>%
@@ -265,7 +265,9 @@ position_averages_with_team %>%
   )
 ```
 
+
 ## Should we consider the number of sprinting efforts that athletes are completing?
+
 
 ```{r}
 # Create weekly sprint count totals
@@ -338,13 +340,82 @@ ggplot(weekly_sprint_counts, aes(x = week, y = sprint_count, color = factor(inju
   scale_color_manual(values = c("0" = "grey", "1" = "red"), labels = c("No Injury", "Injury")) +
   labs(title = "Weekly Sprint Counts with Injury Events", x = "Week", y = "Sprint Count", color = "Injury") +
   theme_minimal()
-
 ```
-No injuries occurred when an athlete had 4 or 5 sprint counts within a week. There are limited data points in these sprint counts.
+
+No injuries occurred when an athlete had 4 or 5 sprint counts within a week, however there are limited data points in these sprint counts.
 There are also only three injuries that occur in the moderate range of 2-3 sprint counts
 The most injuries occur in the low range of 0-1 sprints.
 
 This suggests that underexposure to sprinting may increase injury risk.
+
+```{r}
+injury_by_group <- weekly_sprint_counts %>%
+  group_by(sprint_load_group) %>%
+  summarise(
+    total_weeks = n(),
+    injuries = sum(injury),
+    injury_rate = injuries / total_weeks
+  )
+injury_by_group
+```
+The moderate group (2-3 sprints) has the highest injury rate (1.18%). Low sprints still had injuries, but at at lower rate (0.36%). High sprints had zero injuries, but the sample size is very small so we cannot draw a reliable conclusion from this group.
+
+```{r}
+# Build contingency table
+sprint_injury_table <- matrix(
+  c(0, 13, 3, 254, 22, 6093),
+  nrow = 3,
+  byrow = TRUE,
+  dimnames = list(
+    sprint_group = c("High", "Moderate", "Low"),
+    injury = c("Injury", "No Injury")
+  )
+)
+
+# Run Fisher's Exact Test
+fisher.test(sprint_injury_table)
+```
+Null hypothesis: Injury occurrence is independent of sprint load group.
+Alternative: Injury occurrence is associated with sprint load group.
+
+Because the p-value is > 0.05, we fail to reject the null. 
+there is no strong evidence of a significant association between sprinting effort group and injury occurrence based the current data.
+
+
+
+Now we will explore the previous week's sprint count.
+
+```{r}
+# Create data set to explore the sprint count for the week before
+
+# Shift sprint counts by 1 week for each athlete
+weekly_sprint_counts_lagged <- weekly_sprint_counts %>%
+  arrange(anon_id, week) %>%
+  group_by(anon_id) %>%
+  mutate(
+    sprint_count_lag1 = lag(sprint_count),
+    sprint_load_group_lag1 = lag(sprint_load_group)
+  ) %>%
+  ungroup()
+
+# Create injury weeks again (same as before)
+injury_weeks <- Incident_Report_clean %>%
+  mutate(
+    week = floor_date(as.Date(Date.of.Injury), unit = "week")
+  ) %>%
+  filter(Date.of.Injury >= as.Date("2024-06-30") & Date.of.Injury <= as.Date("2025-07-01")) %>%
+  select(anon_id, week) %>%
+  distinct() %>%
+  mutate(injury = 1)
+
+# Merge with sprint data using CURRENT week for injury
+sprint_prior_to_injury <- weekly_sprint_counts_lagged %>%
+  left_join(injury_weeks, by = c("anon_id", "week")) %>%
+  mutate(injury = replace_na(injury, 0))  # Fill missing with 0s
+```
+
+
+
 
 ```{r}
 # Join to add week number per athlete
@@ -373,16 +444,203 @@ weekly_sprint_counts %>%
   summarise(mean_non_injury_sprints = mean(sprint_count, na.rm = TRUE))
 
 ```
+
 ```{r}
 ggplot(weekly_sprint_counts, aes(x = factor(injury), y = sprint_count, fill = factor(injury))) +
   geom_boxplot() +
   scale_fill_manual(values = c("0" = "lightblue", "1" = "salmon")) +
   labs(title = "Sprint Count Distribution by Injury Status", x = "Injury", y = "Sprint Count") +
   theme_minimal()
+```
 
+
+#### Exploring Velocity bands for question 2
+
+```{r}
+# Create sum of weekly band totals
+
+# Make sure week is defined
+Catapult_Session_clean <- Catapult_Session_clean %>%
+  filter(Date >= as.Date("2024-06-30") & Date <= as.Date("2025-07-01")) %>% 
+  mutate(week = floor_date(Date, unit = "week"))
+
+# Sum efforts by week and athlete
+weekly_velocity_efforts <- Catapult_Session_clean %>%
+  group_by(anon_id, week) %>%
+  summarise(
+    V2 = sum(Velocity.Band.2.Total.Effort.Count, na.rm = TRUE),
+    V3 = sum(Velocity.Band.3.Total.Effort.Count, na.rm = TRUE),
+    V4 = sum(Velocity.Band.4.Total.Effort.Count, na.rm = TRUE),
+    V5 = sum(Velocity.Band.5.Total.Effort.Count, na.rm = TRUE),
+    V6 = sum(Velocity.Band.6.Total.Effort.Count, na.rm = TRUE),
+    V7 = sum(Velocity.Band.7.Total.Effort.Count, na.rm = TRUE),
+    V8 = sum(Velocity.Band.8.Total.Effort.Count, na.rm = TRUE),
+    total_efforts = V2 + V3 + V4 + V5 + V6 + V7 + V8,
+    Weekly_Max_Velocity = max(Maximum.Velocity, na.rm = TRUE),
+    Player_Max_Velocity = first(Player.Max.Velocity),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    pct_of_max_velocity = (Weekly_Max_Velocity / Player_Max_Velocity) * 100
+  )
+
+# Create percentage of weekly efforts in each band
+weekly_velocity_efforts <- weekly_velocity_efforts %>%
+  mutate(
+    pct_V2 = (V2 / total_efforts) * 100,
+    pct_V3 = (V3 / total_efforts) * 100,
+    pct_V4 = (V4 / total_efforts) * 100,
+    pct_V5 = (V5 / total_efforts) * 100,
+    pct_V6 = (V6 / total_efforts) * 100,
+    pct_V7 = (V7 / total_efforts) * 100,
+    pct_V8 = (V8 / total_efforts) * 100
+  )
+```
+
+
+```{r}
+# Plot for one player
+
+# Identify player
+player_id <- "ID_93"
+
+# Filter to that player and reshape
+player_weekly_data <- weekly_velocity_efforts %>%
+  filter(anon_id == player_id) %>%
+  select(week, pct_V2:pct_V8, pct_of_max_velocity) %>%
+  # Reshape to long format for plotting
+  pivot_longer(
+    cols = starts_with("pct_V"),
+    names_to = "velocity_band",
+    values_to = "percent_effort"
+  ) %>%
+  mutate(
+    velocity_band = factor(velocity_band, levels = paste0("pct_V", 2:8),
+                           labels = paste0("V", 2:8))
+  )
+
+ggplot(player_weekly_data, aes(x = week)) +
+  geom_col(aes(y = percent_effort, fill = velocity_band), position = "stack") +
+  geom_line(aes(y = pct_of_max_velocity, group = 1), 
+            color = "black", 
+            size = 1.2) +
+  geom_point(aes(y = pct_of_max_velocity), 
+             color = "black", 
+             size = 2) +
+  scale_fill_brewer(palette = "Set2") +
+  labs(
+    title = paste("Velocity Band Effort % and Speed Trend for", player_id),
+    x = "Week",
+    y = "Percent of Total Weekly Effort",
+    fill = "Velocity Band"
+  ) +
+  scale_y_continuous(
+    name = "Percent of Total Effort",
+    sec.axis = sec_axis(~ ., name = "Percent of Max Velocity")
+  ) +
+  theme_minimal()
+```
+
+```{r}
+# Plot for each player
+
+# Loop over all players and display their plots
+unique(weekly_velocity_efforts$anon_id) %>%
+  lapply(function(player_id) {
+    
+    # Prepare the data for one player
+    player_weekly_data <- weekly_velocity_efforts %>%
+      filter(anon_id == player_id) %>%
+      select(week, pct_V2:pct_V8, pct_of_max_velocity) %>%
+      pivot_longer(
+        cols = starts_with("pct_V"),
+        names_to = "velocity_band",
+        values_to = "percent_effort"
+      ) %>%
+      mutate(
+        velocity_band = factor(
+          velocity_band,
+          levels = paste0("pct_V", 2:8),
+          labels = paste0("V", 2:8)
+        )
+      )
+    
+    # Skip empty data
+    if (nrow(player_weekly_data) == 0) return(NULL)
+    
+    # Generate and print the plot
+    plot <- ggplot(player_weekly_data, aes(x = week)) +
+      geom_col(aes(y = percent_effort, fill = velocity_band), position = "stack") +
+      geom_line(aes(y = pct_of_max_velocity, group = 1), color = "black", size = 1.2) +
+      geom_point(aes(y = pct_of_max_velocity), color = "black", size = 2) +
+      scale_fill_brewer(palette = "Set2") +
+      scale_y_continuous(
+        name = "Percent of Total Effort",
+        sec.axis = sec_axis(~ ., name = "Percent of Max Velocity")
+      ) +
+      labs(
+        title = paste("Velocity Band Effort % and Speed Trend for Player", player_id),
+        x = "Week",
+        fill = "Velocity Band"
+      ) +
+      theme_classic()
+    
+    print(plot)  # Display plot
+    
+    return(NULL)
+  })
 
 ```
+```{r}
+
+
+# Pick one player
+player_id <- "ID_93"
+
+# Filter data for that player and weeks
+player_data <- weekly_velocity_efforts %>%
+  filter(anon_id == player_id)
+
+# Plot of Total Sprinting Efforts per Week
+ggplot(player_data, aes(x = week, y = total_efforts)) +
+  geom_line(color = "#CFB87C", size = 1) +
+  geom_point(color = "#CFB87C", size = 2) +
+  labs(
+    title = paste("Total Sprinting Efforts per Week for Player", player_id),
+    x = "Week",
+    y = "Total Sprinting Efforts"
+  ) +
+  theme_classic()
+
+#Plot of Sprint Effort Distribution by Velocity Band
+
+# Reshape absolute counts to long format
+player_counts_long <- player_data %>%
+  select(week, V2, V3, V4, V5, V6, V7, V8) %>%
+  pivot_longer(
+    cols = V2:V8,
+    names_to = "velocity_band",
+    values_to = "effort_count"
+  ) %>%
+  mutate(
+    velocity_band = factor(velocity_band, levels = paste0("V", 2:8))
+  )
+
+ggplot(player_counts_long, aes(x = week, y = effort_count, fill = velocity_band)) +
+  geom_col(position = "stack") +
+  scale_fill_brewer(palette = "Set2") +
+  labs(
+    title = paste("Sprint Effort Distribution by Velocity Band for Player", player_id),
+    x = "Week",
+    y = "Sprint Effort Count",
+    fill = "Velocity Band"
+  ) +
+  theme_classic()
+```
+
 ## Are relative efforts and bands more advantageous than the absolute bands provided?
+
+Look at ID_11's plot from the last question. This player is an offensive lineman. Looking at the plot, he is mostly in band 2 and 3 while never reaching bands 7 or 8 and rarely reaching band 6. Despite this, this athlete's weekly max velocity is always at least 75% of their all-time max velocity. Only looking at the absolute bands that are provided, we might come to the conclusion that ID_11 is not achieving high running speeds, however after looking at his max velocity efforts relative to his all-time max velocity, he is reaching high running speeds.
 
 ## How does sprinting exposure (# of efforts, % max reached) relate to incidence of hamstring injuries?
 
