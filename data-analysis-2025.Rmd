@@ -16,6 +16,7 @@ library(readxl)
 library(aod)
 library(gt)
 library(boot)
+library(mgcv)
 ```
 
 
@@ -58,7 +59,7 @@ Historical_Running_clean <- Historical_Running %>%
   #only using data from January 1, 2024 and on
   filter(Date >= "2024-01-01") %>%
   mutate(X=1:4063) %>%
-  #making days January 1, 2024
+  #making days since January 1, 2024 for each player
   group_by(anon_id) %>%
   mutate(Days.Since.Start = as.numeric(Date - min(Date))) %>%
   ungroup()
@@ -77,6 +78,7 @@ Incident_Report_clean <- Incident_Report %>%
          Examination.Date = as.Date(Examination.Date, "%m/%d/%Y")) %>%
   #only selecting relevant columns for this analysis
   select(anon_id, Position, Date, Date.of.Injury, Time.of.Injury, Side, OSICS.Injury.Diagnosis, Coach.s.Diagnosis, Recurrence.of.Injury, Choose.Season, Onset.of.Symptoms, Injury.Prognosis, General.Mechanism, Specific.Mechanism, Injured.While., Type.of.Event, Season., Status, Days.in.Status) %>%
+  #making days out due to injury for each player and each injury they sustained
   group_by(anon_id, Date.of.Injury) %>%
   mutate(Days.Out = sum(Days.in.Status)) %>%
   ungroup()
@@ -105,8 +107,7 @@ Historical_Running_clean <- Historical_Running_clean %>%
 ```
 
 ```{r Removing all unimportant objects created during cleaning}
-#removing all_IDs vector and uncleaned data sets
-remove(all_IDs)
+#removing uncleaned data sets
 remove(Incident_Report)
 remove(Historical_Running)
 remove(Catapult_Session)
@@ -1055,11 +1056,12 @@ Fix above code so that ID_95 last week isnt V2
 
 ## What is the variation at the team level and at each individual athlete level?
 
+  Looking at team data as a whole, since January 1, 2024 there is absolute no deviance from 0. That means that since January 1, 2024, the team has had the same average running imbalance of 0. This makes sense given that the team is so large and that imbalances can go from -100% to 100%. This suggests that throughout this time, at no point was there a team sway to one side. There also weren't any points since January 1, 2024 that the team had any large spikes in average absolute value of running imbalance. This suggests that at no point throughout the season were they largers pikes than normal in running imbalance. 
   Each player tends to have a very unique trend in their running imbalance. Looking at how the team varies but also at how each player varies throughout the season, it's hard to make out any pattern that's applicable to most people. The variance of running imbalance varies greatly between each player. Instead we looked at the variances between players who were injured and those who were not. Based on three different bootstrapped findings, we can see that the variances between players who were injured and those who were not were statistically significant.
   For the first bootstrap, we compared the variance of the pooled groups meaning that the variance in running imbalance for players who were injured and those who were not were compared. This resulted in a 90% confidence interval which suggested that the difference in variance between the two groups is between 0.30 and 3.45. This suggests that when looking at the variance of the two groups separately but all the players are pooled together, the variances will most likely be different by factor between 0.30 and 3.45 and the variance for the injured pool will be greater than that of the uninjured pool.
-  For the second bootstrap, each player's variance was taken individually. This unpooled approach was taken to see if a player's variance in running imbalance could potentially be related to HSI risk. The bootstrap algorithm in this case took the averaged variances of the bootstrapped sample for each group and compared them. This bootstrap produced a 90% confidence interval for the difference in average variance between the two groups is 0.79 to 1.32. These results suggest that players who sustained a hamstring injury since January 1, 2024 had, on average, a greater variance in their running imbalance by about 1.06. This suggests that there is a relationship between variance in running imbalance and HSI risk. This found increase in variability will be used to address the following questions.
+  For the second bootstrap, each player's variance was taken individually. This unpooled approach was taken to see if an individual player's variance in running imbalance could potentially be related to HSI risk. The bootstrap algorithm in this case took the averaged variances of the bootstrapped sample for each group and compared them. This bootstrap produced a 90% confidence interval for the difference in average variance between the two groups is 0.79 to 1.32. These results suggest that players who sustained a hamstring injury since January 1, 2024 had, on average, a greater variance in their running imbalance by about 1.06. This suggests that there is a relationship between variance in running imbalance and HSI risk. This found increase in variability will be used to address the following questions.
   For the third bootstrap, we wanted to see if there was a difference in the average mean absolute value in running imbalance between players who were and weren't injured. The bootstrapping algorithm for this test calculated the average absolute distance value or each running imbalance measurement and found the average for each sample. This test found that at the 90% significance level, injured players had an average running imbalance absolute value between 0.06 and 0.32 greater than their uninjured counterparts. These values though, when we consider that the range of running imbalance goes from 0 to 100 is small and may be hard to detect when out in the field. 
-
+### Team Analysis
 ```{r Looking at team and player variances of running imbalance}
 #team variation
 Historical_Running_clean %>%
@@ -1070,6 +1072,20 @@ Historical_Running_clean %>%
   group_by(anon_id) %>%
   summarize(Player_Variation = var(na.omit(Running.Imbalance))) %>%
   ungroup() 
+
+#average variance in running imbalance across all players
+Historical_Running_clean %>%
+  group_by(anon_id) %>%
+  mutate(Player.var = var(na.omit(Running.Imbalance))) %>%
+  ungroup() %>%
+  summarize(Average_Player_Variance = mean(na.omit(Player.var)))
+
+#making variance and average absolute value for each date to see trends
+Historical_Running_clean <- Historical_Running_clean %>%
+  group_by(Date) %>%
+  mutate(Date.Variance = var(na.omit(Running.Imbalance)),
+         Date.Avg.Abs.Value = mean(abs(na.omit(Running.Imbalance)))) %>%
+  ungroup()
 ```
 
 
@@ -1086,6 +1102,17 @@ ggplot(Historical_Running_clean, aes(Date, Running.Imbalance)) +
   geom_hline(yintercept = team_mean - team_sd) +
   geom_hline(yintercept = team_mean + (2*team_sd), color = "#A2A4A3") +
   geom_hline(yintercept = team_mean - (2*team_sd), color = "#A2A4A3") +
+  geom_smooth(method = "lm", se = TRUE, color = "#CFB87C") +
+  labs(title = "Team Running Imbalance Since January 1, 2024", y="Running Imbalance (%)",
+       subtitle = "\u03BC = 0.08623412, \u03C3^2 = 14.94215")
+
+#making scatter plot of team running imbalance data throughout season
+ggplot(Historical_Running_clean, aes(Date, Running.Imbalance)) +
+  geom_point(alpha = 0.3) +
+  geom_hline(yintercept = team_mean, color = "#CFB87C") +
+  geom_smooth(method = "lm", se = TRUE, color = "#CFB87C") +
+  geom_line(aes(x=Date, y=Date.Avg.Abs.Value), color = "#CFB87C") +
+  geom_line(aes(x=Date, y=-Date.Avg.Abs.Value), color = "#CFB87C") +
   labs(title = "Team Running Imbalance Since January 1, 2024", y="Running Imbalance (%)",
        subtitle = "\u03BC = 0.08623412, \u03C3^2 = 14.94215")
 
@@ -1094,8 +1121,7 @@ ggplot(Historical_Running_clean, aes(Running.Imbalance)) +
   geom_histogram() +
   labs(title = "Team Running Imbalance Since January 1, 2024", x="Running Imbalance")
 ```
-
-
+### Injured Analysis
 ```{r Looking at distributions for injured and uninjured separately}
 #making histogram for running imbalance of all injured athletes
 ggplot(data=Historical_Running_clean[Historical_Running_clean$anon_id %in% injured_IDs,], aes(Running.Imbalance)) +
@@ -1145,7 +1171,7 @@ ggplot(data=Historical_Running_clean[Historical_Running_clean$anon_id %in% uninj
 ```
 
 
-### Bootstrapping Differences between Injured and Uninjured Athletes
+#### Bootstrapping Differences between Injured and Uninjured Athletes
 ```{r Separating injured and uninjured into two different data sets}
 #Splitting up the data sets and calculating player variance and measurement absolute value
 injured_data <- Historical_Running_clean[Historical_Running_clean$anon_id %in% injured_IDs,] %>%
@@ -1164,12 +1190,12 @@ uninjured_data <- Historical_Running_clean[Historical_Running_clean$anon_id %in%
 
 ```{r Boostrapping to look at variances of different groups, pooled}
 #making a data frame to hold all of the within group variances
-group_variances <- data.frame(injured_var = rep(NA,1000),
-                uninjured_var = rep(NA,1000),
-                diff_in_var = rep(NA, 1000))
+group_variances <- data.frame(injured_var = rep(NA,5000),
+                uninjured_var = rep(NA,5000),
+                diff_in_var = rep(NA, 5000))
 
 #bootstrap for variances, 1000 iterations
-for(i in 1:1000){
+for(i in 1:5000){
   #random seed
   set.seed(i) 
   
@@ -1201,11 +1227,11 @@ ggplot(data=group_variances) +
 
 ```{r Bootstrapping to look at average player variances}
 #making a data frame to hold all of the average player variances between groups
-mean_player_variances <- data.frame(injured_var = rep(NA,1000),
-                uninjured_var = rep(NA,1000),
-                diff_in_var = rep(NA, 1000))
+mean_player_variances <- data.frame(injured_var = rep(NA,5000),
+                uninjured_var = rep(NA,5000),
+                diff_in_var = rep(NA, 5000))
 
-for(i in 1:1000){
+for(i in 1:5000){
   #random seed
   set.seed(i) 
   
@@ -1237,12 +1263,12 @@ ggplot(data=mean_player_variances) +
 
 ```{r Bootstrapping to look at average absolute value running imbalance}
 #making a data frame to hold all of the average absolute differences from 0
-group_distance <- data.frame(injured_dist = rep(NA,1000),
-                uninjured_dist = rep(NA,1000),
-                diff_in_dist = rep(NA, 1000))
+group_distance <- data.frame(injured_dist = rep(NA,5000),
+                uninjured_dist = rep(NA,5000),
+                diff_in_dist = rep(NA, 5000))
 
 #bootstrap for variances, 1000 iterations
-for(i in 1:1000){
+for(i in 1:5000){
   #random seed
   set.seed(i) 
   
@@ -1278,6 +1304,21 @@ remove(i,team_mean, team_sd, injured_sample, uninjured_sample, group_variances, 
 ```
 
 
+### Position Analysis
+```{r}
+#making lists to sort position into larger categories
+COMBO <- c("QB","LB","TE","RB", "ILB")
+BIG <- c("OL", "DL", "DE", "DT")
+SKILL <- c("WR", "DB", "CB", "SAF")
+
+#sorting players into which category they are in
+Incident_Report_clean <- Incident_Report_clean %>%
+  mutate(Specific.Position = Position,
+         Position = case_when(Position %in% COMBO ~ "COMBO",
+                               Position %in% BIG ~ "BIG",
+                               Position %in% SKILL ~ "SKILL"))
+```
+
 ## What is a meaningful change? What red flags should go off when we see a week-to-week change in running imbalance?
 
   Based on the analysis below, there doesn't seem to be any major discernible differences in running imbalance before or following an injury. This suggests that there may not be a direct link between HSI risk and running imbalance value directly beforehand. Instead, the trends of many players who were injured seems to have a relatively consistent trend not entirely dependent on time. 
@@ -1302,6 +1343,7 @@ for(i in 1:22){
   
   #go through all of the dates in which the player had an injury
   for(j in 1:length(injury_dates)){
+    
     #calculate dates for 1, 2, 3, 4 weeks before and after each injury date
     past_1 <- injury_dates[j]-7
     past_2 <- injury_dates[j]-14
@@ -1414,7 +1456,7 @@ remove(future_1, future_2, future_3, future_4, i, injury_count, injury_dates, j,
 remove(Injured_Historical_Running)
 ```
 
-
+### Injury Risk
 ```{r}
 for(i in 1:22){
   p <- ggplot(data=Historical_Running_clean[Historical_Running_clean$anon_id==injured_IDs[i],], aes(Date, Running.Imbalance)) +
@@ -1472,9 +1514,59 @@ for(i in 1:22){
 }
 ```
 
+### Player Trends
+```{r Looking at detectable trends in player data}
+for(i in 1:71){
+  #only plotting if there are over 15 data points for each player
+  if(nrow(Historical_Running_clean[Historical_Running_clean$anon_id == all_IDs[i],])>15){
+    #calculating how strong of a non linear trend there is using a gam
+    df <- summary(gam(Running.Imbalance~s(Days.Since.Start),
+              data=Historical_Running_clean[Historical_Running_clean$anon_id == all_IDs[i],]))$edf
+    #calculating how strong of a linear trend there is using kendall correlation
+    Kendall_Cor <- cor(x=Historical_Running_clean[Historical_Running_clean$anon_id == all_IDs[i],]$Days.Since.Start, y=Historical_Running_clean[Historical_Running_clean$anon_id == all_IDs[i],]$Running.Imbalance, method="kendall")
+  
+    #if there is a detectable linear relationship in the data
+if(abs(Kendall_Cor>0.2) & df<=3){ #linear trend in data
+  p <- ggplot(data=Historical_Running_clean[Historical_Running_clean$anon_id == all_IDs[i],], aes(Date, Running.Imbalance)) +
+    geom_line() +
+    geom_point() +
+    geom_smooth(color= "red",
+                method="lm",
+                se=FALSE) +
+    labs(title="Running Imbalance Since January 1, 2024 (linear trend)", subtitle=all_IDs[i],) +
+    xlim(as.Date("2025-01-01", "%Y-%m-%d"), as.Date("2025-05-01", "%Y-%m-%d"))
+  
+  print(p)
+}
+    #if there is a detectable non-linear trend in the data
+  if(df > 3){ #non linear trend in data
+  p <- ggplot(data=Historical_Running_clean[Historical_Running_clean$anon_id == all_IDs[i],], aes(Date, Running.Imbalance)) +
+    geom_line() +
+    geom_point() +
+    geom_smooth(color = "skyblue",
+                se=FALSE) +
+    labs(title="Running Imbalance Since January 1, 2024 (non-linear trend)", subtitle=all_IDs[i],) +
+    xlim(as.Date("2025-01-01", "%Y-%m-%d"), as.Date("2025-05-01", "%Y-%m-%d"))
+  
+  print(p)
+  }
+    #if there is no detectable trend in the data
+    if(df<=3 & abs(Kendall_Cor)<=0.2){
+      p <- ggplot(data=Historical_Running_clean[Historical_Running_clean$anon_id == all_IDs[i],], aes(Date, Running.Imbalance)) +
+    geom_line() +
+    geom_point() +
+    labs(title="Running Imbalance Since January 1, 2024 (non-linear trend)", subtitle=all_IDs[i],) +
+    xlim(as.Date("2025-01-01", "%Y-%m-%d"), as.Date("2025-05-01", "%Y-%m-%d"))
+    }
+  }
+}
+
+#plotted only from January 1, 2025 to May 1, 2025
+```
+
 
 ```{r removing unnecessary objects from section}
-remove(i, p)
+remove(i, p, df, Kendall_Cor)
 ```
 
 
@@ -1482,7 +1574,7 @@ remove(i, p)
 
   Based on the analysis below, we can see that by solely using variance in running imbalance from the time of the injury to the end of the predicted return-to-play range is not a very strong predictor for whether or not it will take longer for a player to recover or not. In this analysis, we used the running imbalance in the time frame starting with the injury date to the end of the prognosis time frame. With these specific running imbalance values, we calculated the variance in running imbalance and whether or not the athlete returned to play within the predicted time frame or not. 
   This analysis found that when using the variance in these time frames as the only predictor in a logistic regression model, the slope coefficient associated with the variance was statistically significant at the $\alpha = 0.01$ significance level. With that though, the accuracy of the model was only around 0.6 suggesting that it wasn't super strong in practice.
-  In order to understand the impact that variance in running imbalance had on whether or not a player returned in the predicted time frame or not, we performed a bootstrap. We separated the observations in which players did and did not return in the predicted time frame into two different data sets. We then sampled from each of these two data sets and calculated the average variance for each sample. This was repeated 1000 times. This gave us an estimate of the average variance in running imbalance for players who returned within the predicted time frame and those who did not.
+  In order to understand the impact that variance in running imbalance had on whether or not a player returned in the predicted time frame or not, we performed a bootstrap. We separated the observations in which players did and did not return in the predicted time frame into two different data sets. We then sampled from each of these two data sets and calculated the average variance for each sample. This was repeated 5000 times. This gave us an estimate of the average variance in running imbalance for players who returned within the predicted time frame and those who did not.
   This bootstrap revealed that players who did not return within the predicted time frame had a variance greater by roughly 1.2 during their time of recovery than those who returned on time. This tells us that while variance in running imbalance is not directly strong enough to predict whether or not an athlete will return within the predicted time frame, it can be used to supplement prognosis or make adjustments to the prognosis during the time of recovery of a HSI. 
 
 ```{r}
@@ -1521,12 +1613,12 @@ for(i in 1:22){
   geom_point() +
     #Marking when injury occurred with red line
   geom_vline(xintercept=Incident_Report_clean[Incident_Report_clean$anon_id==injured_IDs[i],]$Date.of.Injury, color="red") +
-    #Marking beginning of predicted return to play range with purple dotted line
+    #Marking actual return date with solid green line
+  geom_vline(xintercept=Incident_Report_clean[Incident_Report_clean$anon_id==injured_IDs[i],]$Actual.Return, color="green", linetype=1) +
+  #Marking beginning of predicted return to play range with purple dotted line
   geom_vline(xintercept=Incident_Report_clean[Incident_Report_clean$anon_id==injured_IDs[i],]$Expected.Start.Return, color="purple", linetype=3) +
     #Marking end of predicted return to play range with purple dotted line
   geom_vline(xintercept=Incident_Report_clean[Incident_Report_clean$anon_id==injured_IDs[i],]$Expected.End.Return, color="purple", linetype=3) +
-    #Marking actual return date with solid green line
-  geom_vline(xintercept=Incident_Report_clean[Incident_Report_clean$anon_id==injured_IDs[i],]$Actual.Return, color="green", linetype=1) +
     labs(title=injured_IDs[i])
   
   print(p)
@@ -1568,85 +1660,116 @@ Injured_Historical_Running <- Injured_Historical_Running %>%
   mutate(Injury.Variability = var(Running.Imbalance)) %>%
   ungroup()
 
+#adding injury and running data sets together
 Injured_Data <- left_join(Injured_Historical_Running, Incident_Report_clean, by=c("anon_id", "Injury.Count"), relationship = "many-to-many") %>%
+  #making new column if player returned in predicted time frame
   mutate(Return.in.Range = ifelse(Actual.Return>=Expected.Start.Return & Actual.Return <= Expected.End.Return, 1, 0)) %>%
+  #removing rows that are missing important data
   filter(!is.na(Injury.Variability),
          !is.na(Return.in.Range))
 ```
 
 
+### Logistic Regression Model
 ```{r}
 set.seed(1000)
-rows <- sample(1:804, size=598, replace=FALSE)
+#making a 75% to 25% training to testing split
+rows <- sample(1:nrow(Injured_Data), size=(nrow(Injured_Data)*0.75), replace=FALSE)
 Injured_train <- Injured_Data[rows,]
 Injured_test <- Injured_Data[-rows,]
 
+#building logistic regression model from training data
 return_to_play_model <- glm(Return.in.Range~Injury.Variability, data=Injured_train, family="binomial")
 
+#looking at coefficients and p-values
 summary(return_to_play_model)
 
+#making predictions on testing data based off of the model built
 Injured_test <- Injured_test %>%
   mutate(Prediction = ifelse(predict(return_to_play_model, newdata=Injured_test, type="response")>0.5, 1, 0))
 
+#calculating CER
 Injured_test %>%
   summarize(CER = mean(Prediction != Return.in.Range))
 
 ```
-```{r}
+
+
+```{r Cross validating logistic regression model}
+#making model with all of the data
 return_to_play_cv <- glm(Return.in.Range~Injury.Variability, data=Injured_Data, family="binomial")
 
+#making cost function for CER
 cost <- function(obs, pred){
   mean((pred <= 0.5) & obs==1 | (pred > 0.5) & obs==0)
 }
 
 set.seed(1000)
 
+#cross validating with K=10
 ten_cv <- cv.glm(data=Injured_Data,glmfit=return_to_play_cv,cost,K=10)
 
 #extract average error
 ten_cv$delta[1]
 ```
 
+
 ### Bootstrapping Differences Between In and Out of Range Return to Plays
-```{r}
+```{r Making separate data sets for bootstrapped comparison}
+#taking only players who recovered in predicted time frame
 In_Range <- Injured_Data %>%
   filter(Return.in.Range == 1,
          !is.na(Injury.Variability))
 
+#taking only players who did not recover in the predicted time frame
 Out_Range <- Injured_Data %>%
   filter(Return.in.Range == 0,
          !is.na(Injury.Variability))
 ```
 
-```{r}
-Range_Variances <- data.frame(in.avg.var = rep(NA, 1000),
-                              out.avg.var = rep(NA, 1000),
-                              diff.avg.var = rep(NA, 1000))
 
-for(i in 1:1000){
+```{r Boostrapping variances across both groups}
+#making data frame to hold values
+Range_Variances <- data.frame(in.avg.var = rep(NA, 5000),
+                              out.avg.var = rep(NA, 5000),
+                              diff.avg.var = rep(NA, 5000))
+
+#bootstrapping 5000 times
+for(i in 1:5000){
   set.seed(i)
   
+  #sample from players who recovered in predicted range
   in_sample <- sample_n(In_Range, size=308, replace=TRUE)
+  #sample fro players who did not recover in predicted range
   out_sample <- sample_n(Out_Range, size=477, replace=TRUE)
   
+  
+  #calculating variances of each sample and storing in data frame
   Range_Variances[i,1] <- mean(in_sample$Injury.Variability)
   Range_Variances[i,2] <- mean(out_sample$Injury.Variability)
-  Range_Variances[i,3] <- Range_Variances[i,2] - Range_Variances[i,1]
+  Range_Variances[i,3] <- Range_Variances[i,2] - Range_Variances[i,1] #diff in variances
 }
 ```
 
-```{r}
+
+```{r Plotting results from bootstrap}
+#plotting differences in average variance
 ggplot(data=Range_Variances, aes(diff.avg.var)) +
   geom_histogram() +
+  #adding in 90% CI (does not include 0)
   geom_vline(xintercept = quantile(Range_Variances$diff.avg.var, 0.05), color ="#CFB87C") +
   geom_vline(xintercept = quantile(Range_Variances$diff.avg.var, 0.95), color ="#CFB87C")
 
+#plotting average variances of difference groups
 ggplot(data=Range_Variances) +
+  #players who recovered in predicted time frame
   geom_histogram(aes(in.avg.var), alpha = 0.75) +
+  #players who did not recover in the predicted time frame
   geom_histogram(aes(out.avg.var), alpha = 0.75, fill ="#CFB87C") +
   labs(x="Average Variance")
 ```
 
-```{r}
+
+```{r Removing unnecessary objects created during this analysis}
 remove(p,i,j,rows,ten_cv, cost, Injured_Data, Injured_Historical_Running, Injured_test, Injured_train, Range_Variances, return_to_play_cv, return_to_play_model, expected_return, injury_dates, In_Range, Out_Range, in_sample, out_sample)
 ```
