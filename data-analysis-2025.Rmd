@@ -173,7 +173,8 @@ ggplot(QBs, aes(x=anon_id, y=times_hit_90)) +
   theme_classic()
 
 ```
-## Maybe delete facet plot, as it is hard to read
+
+## Facet plot useful, but hard to read so probably don't include in presentation.
 ```{r}
 # Facet Plot
 
@@ -372,7 +373,7 @@ The moderate group (2-3 sprints) has the highest injury rate (1.18%). Low sprint
 ```{r}
 # Build contingency table
 sprint_injury_table <- matrix(
-  c(0, 13, 3, 254, 22, 6093),
+  c(0, 13, 3, 254, 20, 6093),
   nrow = 3,
   byrow = TRUE,
   dimnames = list(
@@ -569,8 +570,8 @@ unique(weekly_velocity_efforts$anon_id) %>%
       mutate(
         velocity_band = factor(
           velocity_band,
-          levels = paste0("pct_V", 2:8),
-          labels = paste0("V", 2:8)
+          levels = paste0("pct_V", 8:2),
+          labels = paste0("V", 8:2)
         )
       )
     
@@ -582,8 +583,18 @@ unique(weekly_velocity_efforts$anon_id) %>%
       geom_col(aes(y = percent_effort, fill = velocity_band), position = "stack") +
       geom_line(aes(y = pct_of_max_velocity, group = 1), color = "black", size = 1.2) +
       geom_point(aes(y = pct_of_max_velocity), color = "black", size = 2) +
-      scale_fill_brewer(palette = "Set2") +
-      scale_y_continuous(
+      scale_fill_manual(
+        values = c(
+          "V2" = "darkgreen",
+          "V3" = "green2",
+          "V4" = "greenyellow",
+          "V5" = "yellow",
+          "V6" = "orange",
+          "V7" = "tomato",
+          "V8" = "firebrick"
+  )
+) +
+    scale_y_continuous(
         name = "Percent of Total Effort",
         sec.axis = sec_axis(~ ., name = "Percent of Max Velocity")
       ) +
@@ -598,8 +609,8 @@ unique(weekly_velocity_efforts$anon_id) %>%
     
     return(NULL)
   })
-
 ```
+
 ```{r}
 
 
@@ -651,9 +662,394 @@ ggplot(player_counts_long, aes(x = week, y = effort_count, fill = velocity_band)
 
 Look at ID_11's plot from the last question. This player is an offensive lineman. Looking at the plot, he is mostly in band 2 and 3 while never reaching bands 7 or 8 and rarely reaching band 6. Despite this, this athlete's weekly max velocity is always at least 75% of their all-time max velocity. Only looking at the absolute bands that are provided, we might come to the conclusion that ID_11 is not achieving high running speeds, however after looking at his max velocity efforts relative to his all-time max velocity, he is reaching high running speeds.
 
+#### Create Relative Bands for ID_11
+
+```{r}
+# Create Relative Bands for ID_11
+
+# Prepare ID_11 dataset with relative bands
+ID_11 <- Catapult_Session_clean %>%
+  filter(Date >= as.Date("2024-06-30") & Date <= as.Date("2025-07-01")) %>% 
+  filter(anon_id == "ID_11", Maximum.Velocity != 0) %>%
+  filter(!is.na(Maximum.Velocity)) %>%
+  mutate(
+    week = floor_date(Date, unit = "week"),
+    pct_of_max = (Maximum.Velocity / Player.Max.Velocity) * 100,
+    # Create Relative Bands
+    relative_band = cut(
+      pct_of_max,
+      breaks = c(0, 40, 50, 60, 70, 80, 90, 100),
+      labels = c("V2 (<40%)", "V3 (40-50%)","V4 (50-60%)" ,"V5 (60-70%)", "V6 (70-80%)", "V7 (80-90%)", "V8 (90-100%)"),
+      right = TRUE, # Set to TRUE to include 100% in band
+      include.lowest = TRUE  # Includes 0 in first band
+    ),
+    # Reverse factor levels so highest band is on top in plot
+  relative_band = factor(
+    relative_band,
+    levels = rev(c("V2 (<40%)", "V3 (40-50%)","V4 (50-60%)" ,"V5 (60-70%)", "V6 (70-80%)", "V7 (80-90%)", "V8 (90-100%)"))
+  )
+  )
+
+# Summarize counts per week and relative band
+weekly_effort <- ID_11 %>%
+  group_by(week, relative_band) %>%
+  summarise(count = n(), .groups = "drop") %>%
+  group_by(week) %>%
+  mutate(pct_effort = (count / sum(count)) * 100) %>%
+  ungroup()
+
+# Pivot wider to get percentages per band as columns
+weekly_effort_wide <- weekly_effort %>%
+  select(week, relative_band, pct_effort) %>%
+  pivot_wider(names_from = relative_band, values_from = pct_effort, values_fill = 0)
+
+# Calculate weekly max velocity % of player max velocity
+weekly_max_velocity <- ID_11 %>%
+  group_by(week) %>%
+  summarise(pct_of_max_velocity = max(pct_of_max), .groups = "drop")
+
+# Join the max velocity % back to wide effort data
+weekly_effort_wide <- weekly_effort_wide %>%
+  left_join(weekly_max_velocity, by = "week")
+
+# Pivot longer for stacked bar plotting
+weekly_effort_long <- weekly_effort_wide %>%
+  pivot_longer(
+    cols = c("V2 (<40%)", "V3 (40-50%)","V4 (50-60%)" ,"V5 (60-70%)", "V6 (70-80%)", "V7 (80-90%)", "V8 (90-100%)"),
+    names_to = "relative_band",
+    values_to = "pct_effort"
+  ) %>%
+  mutate(
+    relative_band = factor(
+      relative_band,
+      levels = rev(c("V2 (<40%)", "V3 (40-50%)","V4 (50-60%)" ,"V5 (60-70%)", "V6 (70-80%)", "V7 (80-90%)", "V8 (90-100%)"))
+    )
+  )
+```
+
+```{r}
+# Plot Relative Bands for ID_11
+ggplot(weekly_effort_long, aes(x = week, y = pct_effort, fill = relative_band)) +
+  geom_col(position = "stack") +
+  geom_line(aes(y = pct_of_max_velocity, group = 1), 
+            color = "black", size = 1.2) +
+  geom_point(aes(y = pct_of_max_velocity), 
+             color = "black", size = 2) +
+  scale_fill_manual(
+    values = c(
+      "V2 (<40%)" = "darkgreen",
+      "V3 (40-50%)" = "green2",
+      "V4 (50-60%)" = "greenyellow",
+      "V5 (60-70%)" = "yellow",
+      "V6 (70-80%)" = "orange",
+      "V7 (80-90%)" = "tomato",
+      "V8 (90-100%)" = "darkred"
+    )
+  ) +
+  labs(
+    title = "Relative Velocity Band Effort % per Week, ID_11",
+    x = "Week",
+    y = "Percent of Weekly Efforts",
+    fill = "Relative Velocity Band"
+  ) + 
+  scale_y_continuous(
+    sec.axis = sec_axis(~ ., name = "Percent of Max Velocity")
+  ) +
+  theme_classic()
+```
+Comparing this with the absolute bands graph of ID_11, we can see that this is a much better representation of their running speeds.
+
+#### Relative Bands for each athlete
+
+```{r}
+# Function to create relative bands and plot these for each athlete
+
+# Arrange data so that the plot will display in anon_id order
+clean_anons <- Catapult_Session_clean %>%
+  arrange(anon_id)
+
+# Loop over all athletes and create their relative bands plots
+unique(clean_anons$anon_id) %>%
+  lapply(function(player_id) {
+    # Prepare data for player
+    player_data <- Catapult_Session_clean %>%
+      filter(Date >= as.Date("2024-06-30") & Date <= as.Date("2025-07-01")) %>%
+      filter(anon_id == player_id, Maximum.Velocity != 0, !is.na(Maximum.Velocity)) %>%
+      mutate(
+        week = floor_date(Date, unit = "week"),
+        pct_of_max = (Maximum.Velocity / Player.Max.Velocity) * 100,
+        # Create Relative Bands
+        relative_band = cut(
+          pct_of_max,
+          breaks = c(0, 40, 50, 60, 70, 80, 90, 100),
+          labels = c("V2 (<40%)", "V3 (40-50%)", "V4 (50-60%)", "V5 (60-70%)",
+                     "V6 (70-80%)", "V7 (80-90%)", "V8 (90-100%)"),
+          right = TRUE, # Set to true to include 100%
+          include.lowest = TRUE  # Set to true to include 0 in 1st interval
+        ),
+        # Reverse factor levels so highest band is on top in plot
+        relative_band = factor(
+          relative_band,
+          levels = rev(c("V2 (<40%)", "V3 (40-50%)", "V4 (50-60%)", "V5 (60-70%)",
+                         "V6 (70-80%)", "V7 (80-90%)", "V8 (90-100%)"))
+        )
+      )
+    
+    if (nrow(player_data) == 0) return(NULL)  # skip empty
+
+    # Summarize counts per week and relative band
+    weekly_effort <- player_data %>%
+      group_by(week, relative_band) %>%
+      summarise(count = n(), .groups = "drop") %>%
+      group_by(week) %>%
+      mutate(pct_effort = (count / sum(count)) * 100) %>%
+      ungroup()
+
+    # Pivot wider to get percentages per band as columns
+    weekly_effort_wide <- weekly_effort %>%
+      select(week, relative_band, pct_effort) %>%
+      pivot_wider(names_from = relative_band, values_from = pct_effort, values_fill = 0)
+
+    # Calculate weekly max velocity % of player max velocity
+    weekly_max_velocity <- player_data %>%
+      group_by(week) %>%
+      summarise(pct_of_max_velocity = max(pct_of_max), .groups = "drop")
+
+    # Join
+    weekly_effort_wide <- weekly_effort_wide %>%
+      left_join(weekly_max_velocity, by = "week")
+    
+    # Pivot longer for stacked bar plotting
+    weekly_effort_long <- weekly_effort_wide %>%
+      pivot_longer(
+          cols = -c(week, pct_of_max_velocity),
+        names_to = "relative_band",
+        values_to = "pct_effort"
+      ) %>%
+      mutate(
+        relative_band = factor(
+          relative_band,
+          levels = rev(c("V2 (<40%)", "V3 (40-50%)", "V4 (50-60%)", "V5 (60-70%)",
+                         "V6 (70-80%)", "V7 (80-90%)", "V8 (90-100%)"))
+        )
+      )
+    
+    # Plot
+    plot <- ggplot(weekly_effort_long, aes(x = week, y = pct_effort, fill = relative_band)) +
+      geom_col(position = "stack") +
+      geom_line(aes(y = pct_of_max_velocity, group = 1), color = "black", size = 1.2) +
+      geom_point(aes(y = pct_of_max_velocity), color = "black", size = 2) +
+      scale_fill_manual(
+        values = c(
+          "V2 (<40%)" = "darkgreen",
+          "V3 (40-50%)" = "green2",
+          "V4 (50-60%)" = "greenyellow",
+          "V5 (60-70%)" = "yellow",
+          "V6 (70-80%)" = "orange",
+          "V7 (80-90%)" = "tomato",
+          "V8 (90-100%)" = "darkred"
+        )
+      ) +
+      scale_y_continuous(
+        name = "Percent of Weekly Effort",
+        sec.axis = sec_axis(~ ., name = "Percent of Max Velocity")
+      ) +
+      labs(
+        title = paste("Relative Velocity Band Effort % and Max Velocity Trend for Player", player_id),
+        x = "Week",
+        fill = "Relative Velocity Band"
+      ) +
+      theme_classic()
+
+    print(plot)
+    
+    return(NULL)
+  })
+```
+
+
+```{r}
+# Create relative bands for all athletes
+
+# Define the velocity band labels
+band_levels <- rev(c("V2 (<40%)", "V3 (40-50%)", "V4 (50-60%)", "V5 (60-70%)",
+                     "V6 (70-80%)", "V7 (80-90%)", "V8 (90-100%)"))
+
+# Create exposure data frame for all players
+weekly_sprint_exposure <- Catapult_Session_clean %>%
+  filter(Date >= as.Date("2024-06-30") & Date <= as.Date("2025-07-01")) %>%
+  filter(Maximum.Velocity != 0, !is.na(Maximum.Velocity)) %>%
+  mutate(
+    week = floor_date(Date, unit = "week"),
+    pct_of_max = (Maximum.Velocity / Player.Max.Velocity) * 100,
+    relative_band = cut(
+      pct_of_max,
+      breaks = c(0, 40, 50, 60, 70, 80, 90, 100),
+      labels = band_levels,
+      right = TRUE,  # will include 100
+      include.lowest = TRUE
+    ),
+    relative_band = factor(relative_band, levels = band_levels)
+  ) %>%
+  group_by(anon_id, week, relative_band) %>%
+  summarise(effort_count = n(), .groups = "drop") %>%
+  group_by(anon_id, week) %>%
+  mutate(
+    total_efforts = sum(effort_count),
+    pct_effort = (effort_count / total_efforts) * 100
+  ) %>%
+  ungroup() %>%
+  select(anon_id, week, relative_band, pct_effort) %>%
+  pivot_wider(
+    names_from = relative_band,
+    values_from = pct_effort,
+    values_fill = 0
+  )
+
+# Add weekly max velocity % of max
+weekly_max_pct <- Catapult_Session_clean %>%
+  filter(Date >= as.Date("2024-06-30") & Date <= as.Date("2025-07-01")) %>%
+  filter(Maximum.Velocity != 0, !is.na(Maximum.Velocity)) %>%
+  mutate(
+    week = floor_date(Date, unit = "week"),
+    pct_of_max = (Maximum.Velocity / Player.Max.Velocity) * 100
+  ) %>%
+  group_by(anon_id, week) %>%
+  summarise(pct_of_max_velocity = max(pct_of_max, na.rm = TRUE), .groups = "drop")
+
+# Final data set
+relative_bands <- weekly_sprint_exposure %>%
+  left_join(weekly_max_pct, by = c("anon_id", "week"))
+
+# Convert to long for plotting
+relative_bands_long <- relative_bands %>%
+  pivot_longer(
+    cols = starts_with("V"),
+    names_to = "relative_band",
+    values_to = "pct_effort"
+  ) %>%
+  mutate(
+    relative_band = factor(relative_band, levels = band_levels)
+  )
+```
+
+
 ## How does sprinting exposure (# of efforts, % max reached) relate to incidence of hamstring injuries?
 
+```{r}
+# Join relative_bands dataset with injury data
 
+Incident_dates <- Incident_Report_clean %>%
+  filter(Date >= as.Date("2024-06-30") & Date <= as.Date("2025-07-01"))
+
+# Get ids of athletes with injury
+injured_ids <- unique(Incident_dates$anon_id)
+
+# Filter relative_bands to only include athletes who got injured
+injured_data <- relative_bands_long %>%
+  filter(anon_id %in% injured_ids)
+
+injuries_and_running <- injured_data %>%
+  left_join(injury_weeks, by = c("anon_id", "week")) %>%
+  mutate(injury = ifelse(is.na(injury), 0, injury))
+```
+
+```{r}
+
+# For demonstration: pick one player (or loop over them)
+player_id <- "ID_306"
+
+plot_data <- injuries_and_running %>%
+  filter(anon_id == player_id)
+
+# Find injury weeks for this player
+injury_week_nums <- plot_data %>% filter(injury == 1) %>% pull(week)
+
+ggplot(plot_data, aes(x = week)) +
+  # Highlight injury week(s) as shaded rectangles
+  geom_rect(data = data.frame(week = injury_week_nums),
+            aes(xmin = week - 3, xmax = week + 3, ymin = -Inf, ymax = Inf),
+            fill = "blue", alpha = 0.2, inherit.aes = FALSE) +
+  geom_col(aes(y = pct_effort, fill = relative_band), position = "stack") +
+  geom_line(aes(y = pct_of_max_velocity, group = 1), color = "black", size = 1.2) +
+  geom_point(aes(y = pct_of_max_velocity), color = "black", size = 2) +
+  scale_fill_manual(
+    values = c(
+      "V2 (<40%)" = "darkgreen",
+      "V3 (40-50%)" = "green2",
+      "V4 (50-60%)" = "greenyellow",
+      "V5 (60-70%)" = "yellow",
+      "V6 (70-80%)" = "orange",
+      "V7 (80-90%)" = "tomato",
+      "V8 (90-100%)" = "darkred"
+    )
+  ) +
+  labs(
+    title = paste("Relative Velocity Band Effort % and Max Velocity Trend for", player_id),
+    x = "Week",
+    y = "Percent of Weekly Efforts",
+    fill = "Relative Velocity Band"
+  ) +
+  scale_y_continuous(
+    sec.axis = sec_axis(~ ., name = "Percent of Max Velocity")
+  ) +
+  theme_classic()
+```
+
+```{r}
+# Loop over injured athletes and create their plots
+
+unique(injuries_and_running$anon_id) %>%
+  lapply(function(player_id) {
+    
+    # Filter data for this player
+    plot_data <- injuries_and_running %>%
+      filter(anon_id == player_id)
+    
+    if (nrow(plot_data) == 0) return(NULL)  # Skip if no data
+    
+    # Get injury weeks
+    injury_week_nums <- plot_data %>%
+      filter(injury == 1) %>%
+      pull(week)
+    
+    # Plot
+    plot <- ggplot(plot_data, aes(x = week)) +
+      # Highlight injury weeks with shaded blue areas
+      geom_rect(data = data.frame(week = injury_week_nums),
+                aes(xmin = week - 3, xmax = week + 3, ymin = -Inf, ymax = Inf),
+                fill = "blue", alpha = 0.2, inherit.aes = FALSE) +
+      geom_col(aes(y = pct_effort, fill = relative_band), position = "stack") +
+      geom_line(aes(y = pct_of_max_velocity, group = 1), color = "black", size = 1.2) +
+      geom_point(aes(y = pct_of_max_velocity), color = "black", size = 2) +
+      scale_fill_manual(
+        values = c(
+          "V2 (<40%)" = "darkgreen",
+          "V3 (40-50%)" = "green2",
+          "V4 (50-60%)" = "greenyellow",
+          "V5 (60-70%)" = "yellow",
+          "V6 (70-80%)" = "orange",
+          "V7 (80-90%)" = "tomato",
+          "V8 (90-100%)" = "darkred"
+        )
+      ) +
+      scale_y_continuous(
+        name = "Percent of Weekly Effort",
+        sec.axis = sec_axis(~ ., name = "Percent of Max Velocity")
+      ) +
+      labs(
+        title = paste("Velocity Band Exposure & Max % for Injured Player", player_id),
+        x = "Week",
+        fill = "Relative Velocity Band"
+      ) +
+      theme_classic()
+    
+    print(plot)
+    
+    return(NULL)
+  })
+```
+Fix above code so that ID_95 last week isnt V2
 
 # Section 2: Running Imbalance
 
