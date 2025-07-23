@@ -17,6 +17,7 @@ library(aod)
 library(gt)
 library(boot)
 library(mgcv)
+library(lme4)
 ```
 
 
@@ -118,7 +119,7 @@ remove(Catapult_Session)
 ## How often are athletes reaching ≥ 90% maximum velocity throughout a training season?
 
 ```{r}
-# Bar chart for how often each player reaches ≥ 90% maximum velocity
+# Bar chart for how often players reach ≥ 90% maximum velocity
 
 # Count for how many times each anon_id hit ≥ 90% maximum velocity
 hit_90_counts <- Catapult_Session_clean %>%
@@ -276,7 +277,69 @@ position_averages_with_team %>%
   )
 ```
 
+```{r}
+# >90% counts over the course of the season
 
+# Trying to find out when are players reaching above 90% the most
+
+# Create dataset that has the count of >90% of each day
+daily_90_counts <- Catapult_Session_clean %>%
+  filter(Date >= as.Date("2024-06-30") & Date <= as.Date("2025-07-01")) %>%
+  filter(Hit.90.Percent.Max == "Yes") %>%
+  distinct(anon_id, Date) %>%
+  group_by(Date) %>%
+  summarise(daily_hits = n())
+
+# Plot
+ggplot(daily_90_counts, aes(x = Date, y = daily_hits)) +
+  geom_line(color = "#CFB87C", linewidth = 1) +
+  geom_smooth(method = "loess", se = FALSE, color = "#565A5C", linetype = "dashed") +
+  labs(title = "Daily Count of Players Reaching ≥ 90% of Max Velocity",
+       subtitle = "Over the 2024–25 Training Season",
+       x = "Date", y = "Times reached ≥ 90%") +
+  theme_classic()
+```
+Data is noisy, so lets try grouping by week instead of every day.
+```{r}
+# >90% counts for each week instead of each day. Will be a little less noisy than the daily
+weekly_90_counts <- Catapult_Session_clean %>%
+  filter(Date >= as.Date("2024-06-30") & Date <= as.Date("2025-07-01")) %>%
+  filter(Hit.90.Percent.Max == "Yes") %>%
+  distinct(anon_id, Date) %>%
+  mutate(week = floor_date(Date, unit = "week")) %>%
+  group_by(week) %>%
+  summarise(weekly_hits = n())
+
+ggplot(weekly_90_counts, aes(x = week, y = weekly_hits)) +
+  geom_line(color = "#CFB87C", linewidth = 1) +
+  geom_point(color = "#565A5C") +
+  labs(title = "Weekly Count of Players Reaching ≥ 90% of Max Velocity",
+       x = "Week", y = "Times reached ≥ 90%") +
+  theme_classic()
+```
+
+```{r}
+# Bar chart of weekly >90% counts
+ggplot(weekly_90_counts, aes(x = week, y = weekly_hits)) +
+  geom_col(fill = "#CFB87C", color = "#565A5C", width = 7) +
+  geom_text(aes(label = weekly_hits), 
+            vjust = -0.4, 
+            size = 2.5, 
+            color = "black") +
+  geom_hline(yintercept = mean(weekly_90_counts$weekly_hits),
+             linetype = "dashed", color = "#565A5C", linewidth = 0.5) +
+  labs(
+    title    = "Weekly Count of Players Reaching ≥ 90% of Max Velocity",
+    subtitle = paste("Season Average per Week:", round(mean(weekly_90_counts$weekly_hits), 1)),
+    x        = "Week",
+    y        = "Times reached ≥ 90%"
+  ) +
+  scale_x_date(date_breaks = "2 weeks", date_labels = "%b %d") +
+  theme_classic() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1)
+  )
+```
 ## Should we consider the number of sprinting efforts that athletes are completing?
 
 
@@ -506,51 +569,11 @@ weekly_velocity_efforts <- weekly_velocity_efforts %>%
     pct_V7 = (V7 / total_efforts) * 100,
     pct_V8 = (V8 / total_efforts) * 100
   )
+
+weekly_velocity_efforts <- weekly_velocity_efforts %>%
+  filter(total_efforts > 0)
 ```
 
-
-```{r}
-# Plot for one player
-
-# Identify player
-player_id <- "ID_93"
-
-# Filter to that player and reshape
-player_weekly_data <- weekly_velocity_efforts %>%
-  filter(anon_id == player_id) %>%
-  select(week, pct_V2:pct_V8, pct_of_max_velocity) %>%
-  # Reshape to long format for plotting
-  pivot_longer(
-    cols = starts_with("pct_V"),
-    names_to = "velocity_band",
-    values_to = "percent_effort"
-  ) %>%
-  mutate(
-    velocity_band = factor(velocity_band, levels = paste0("pct_V", 2:8),
-                           labels = paste0("V", 2:8))
-  )
-
-ggplot(player_weekly_data, aes(x = week)) +
-  geom_col(aes(y = percent_effort, fill = velocity_band), position = "stack") +
-  geom_line(aes(y = pct_of_max_velocity, group = 1), 
-            color = "black", 
-            size = 1.2) +
-  geom_point(aes(y = pct_of_max_velocity), 
-             color = "black", 
-             size = 2) +
-  scale_fill_brewer(palette = "Set2") +
-  labs(
-    title = paste("Velocity Band Effort % and Speed Trend for", player_id),
-    x = "Week",
-    y = "Percent of Total Weekly Effort",
-    fill = "Velocity Band"
-  ) +
-  scale_y_continuous(
-    name = "Percent of Total Effort",
-    sec.axis = sec_axis(~ ., name = "Percent of Max Velocity")
-  ) +
-  theme_minimal()
-```
 
 ```{r}
 # Plot for each player
@@ -596,8 +619,8 @@ unique(weekly_velocity_efforts$anon_id) %>%
   )
 ) +
     scale_y_continuous(
-        name = "Percent of Total Effort",
-        sec.axis = sec_axis(~ ., name = "Percent of Max Velocity")
+        name = "Band Distribution (%)",
+        sec.axis = sec_axis(~ ., name = "Weekly Max Velocity (% of PR)")
       ) +
       labs(
         title = paste("Velocity Band Effort % and Speed Trend for Player", player_id),
@@ -644,7 +667,7 @@ player_counts_long <- player_data %>%
     values_to = "effort_count"
   ) %>%
   mutate(
-    velocity_band = factor(velocity_band, levels = paste0("V", 2:8))
+    velocity_band = factor(velocity_band, levels = paste0("V", 8:2))
   )
 
 ggplot(player_counts_long, aes(x = week, y = effort_count, fill = velocity_band)) +
@@ -657,6 +680,237 @@ ggplot(player_counts_long, aes(x = week, y = effort_count, fill = velocity_band)
     fill = "Velocity Band"
   ) +
   theme_classic()
+```
+#### Eploring correlations between bands and max speeds
+
+```{r}
+
+
+# Select relevant columns
+cor_data <- weekly_velocity_efforts %>%
+  select(pct_of_max_velocity, pct_V2, pct_V3, pct_V4, pct_V5, pct_V6, pct_V7, pct_V8)
+
+# Compute correlation matrix
+cor_matrix <- cor(cor_data, use = "pairwise.complete.obs")
+
+cor_matrix
+```
+V4 and V5 appear to be slightly more predictive of top-speed achievement than V6, V7 or V8 — possibly because they're more frequently reached zones.
+
+V2 has a moderately strong negative linear relationship with reaching top-speed. When athletes spend more effort in this low-speed band, their weekly top speed (as % of max) tends to be lower.
+
+```{r}
+# Linear model with all bands predicting pct_of_max_velocity
+model_all_bands <- lm(
+  pct_of_max_velocity ~ pct_V2 + pct_V3 + pct_V4 + pct_V5 + pct_V6 + pct_V7 + pct_V8,
+  data = weekly_velocity_efforts
+)
+summary(model_all_bands)
+```
+```{r}
+# Compute change in top speeds week-to-week
+weekly_velocity_efforts <- weekly_velocity_efforts %>%
+  arrange(anon_id, week) %>%
+  group_by(anon_id) %>%
+  mutate(
+    pct_of_max_velocity_change = pct_of_max_velocity - lag(pct_of_max_velocity)
+  ) %>%
+  ungroup()
+```
+
+```{r}
+# Scatterplot with smoothing line for V8 band effort
+
+# Create V8 data set that only includes when someone was in V8 for a given week
+V8 <- weekly_velocity_efforts %>%
+  filter(pct_V8 > 0)
+
+# Plot
+ggplot(V8, aes(x = pct_V8, y = pct_of_max_velocity_change)) +
+  geom_point(alpha = 0.4) +
+  geom_smooth(method = "loess", se = TRUE, color = "darkred") +
+  labs(
+    title = "Change in Max Speed vs. V8 Band Usage",
+    x = "Percent of Total Effort in V8 Band (%)",
+    y = "Change in Max Speed from Prior Week (%)"
+  ) +
+  theme_classic()
+```
+
+```{r}
+weekly_velocity_efforts <- weekly_velocity_efforts %>%
+  group_by(anon_id) %>%
+  mutate(
+    lag_pct_V2 = lag(pct_V2),
+    lag_pct_V3 = lag(pct_V3),
+    lag_pct_V4 = lag(pct_V4),
+    lag_pct_V5 = lag(pct_V5),
+    lag_pct_V6 = lag(pct_V6),
+    lag_pct_V7 = lag(pct_V7),
+    lag_pct_V8 = lag(pct_V8)
+  ) %>%
+  ungroup()
+```
+
+```{r}
+# Maybe group by position
+
+# Get Player positions
+player_positions <- Catapult_Session_clean %>%
+  select(anon_id, Primary.Position) %>%
+  distinct()
+
+# Join Position into weekly_velocity_efforts
+weekly_velocity_efforts <- weekly_velocity_efforts %>%
+  left_join(player_positions, by = "anon_id")
+
+# Position groups
+weekly_velocity_efforts <- weekly_velocity_efforts %>%
+  mutate(
+    Position_Group = case_when(
+      Primary.Position %in% c("QB", "LB", "TE", "RB") ~ "COMBO",
+      Primary.Position %in% c("OL", "DL", "DE") ~ "BIGS",
+      Primary.Position %in% c("WR", "DB", "DB, WR") ~ "SKILL",
+      TRUE ~ "OTHER"
+    )
+  ) %>%
+  filter(Position_Group != "OTHER")
+
+ggplot(weekly_velocity_efforts, aes(x = Position_Group, y = pct_of_max_velocity_change)) +
+  geom_boxplot(fill = "skyblue", outlier.color = "red", outlier.size = 1.5) +
+  labs(
+    title = "Weekly Change in % of Max Velocity by Position",
+    x = "Position",
+    y = "% Change in Max Velocity"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r}
+weekly_band_effort_by_group <- weekly_velocity_efforts %>%
+  group_by(week, Position_Group) %>%
+  summarise(
+    mean_V2 = mean(V2, na.rm = TRUE),
+    mean_V3 = mean(V3, na.rm = TRUE),
+    mean_V4 = mean(V4, na.rm = TRUE),
+    mean_V5 = mean(V5, na.rm = TRUE),
+    mean_V6 = mean(V6, na.rm = TRUE),
+    mean_V7 = mean(V7, na.rm = TRUE),
+    mean_V8 = mean(V8, na.rm = TRUE),
+    
+    mean_pct_V2 = mean(pct_V2, na.rm = TRUE),
+    mean_pct_V3 = mean(pct_V3, na.rm = TRUE),
+    mean_pct_V4 = mean(pct_V4, na.rm = TRUE),
+    mean_pct_V5 = mean(pct_V5, na.rm = TRUE),
+    mean_pct_V6 = mean(pct_V6, na.rm = TRUE),
+    mean_pct_V7 = mean(pct_V7, na.rm = TRUE),
+    mean_pct_V8 = mean(pct_V8, na.rm = TRUE),
+    mean_weekly_max_velocity = mean(Weekly_Max_Velocity, na.rm = TRUE),
+    mean_pct_max_velocity = mean(pct_of_max_velocity, na.rm = TRUE),
+    mean_pct_max_velocity_change = mean(pct_of_max_velocity_change, na.rm = TRUE),
+    n_players = n()
+  ) %>%
+  ungroup()
+```
+
+```{r}
+
+# Pivot longer to get bands in one column for easier plotting
+band_long <- weekly_band_effort_by_group %>%
+  pivot_longer(
+    cols = starts_with("mean_pct_V"),
+    names_to = "velocity_band",
+    values_to = "mean_pct_effort"
+  ) %>%
+  mutate(
+    velocity_band = factor(velocity_band, levels = paste0("mean_pct_V", 2:8))
+  )
+
+ggplot(band_long, aes(x = week, y = mean_pct_effort, color = velocity_band)) +
+  geom_line(size = 1) +
+  facet_wrap(~ Position_Group) +
+  labs(
+    title = "Weekly Mean % Effort in Velocity Bands by Position Group",
+    x = "Week",
+    y = "Mean % Effort",
+    color = "Velocity Band"
+  ) +
+  theme_classic() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r}
+# Plot mean weekly max velocity
+ggplot(weekly_band_effort_by_group, aes(x = week, y = mean_weekly_max_velocity, color = Position_Group)) +
+  geom_line(size = 1.2) +
+  labs(
+    title = "Mean Weekly Max Velocity by Position Group",
+    x = "Week",
+    y = "Mean Weekly Max Velocity"
+  ) +
+  theme_classic()
+
+
+# Plot mean % max velocity change
+ggplot(weekly_band_effort_by_group, aes(x = week, y = mean_pct_max_velocity_change, color = Position_Group)) +
+  geom_line(size = 1.2) +
+  labs(
+    title = "Mean % Change in Max Velocity by Position Group",
+    x = "Week",
+    y = "Mean % Change in Max Velocity"
+  ) +
+  theme_classic()
+```
+
+```{r}
+ggplot() +
+  # Plot the stacked lines for band effort %
+  geom_line(data = band_long, aes(x = week, y = mean_pct_effort, color = velocity_band), size = 1) +
+  geom_line(data = weekly_band_effort_by_group,
+            aes(x = week, y = mean_weekly_max_velocity),
+            color = "black", size = 1.2) +
+
+  facet_wrap(~ Position_Group) +
+  labs(
+    title = "Weekly Mean % Effort in Velocity Bands by Position Group\nwith Mean Weekly Max Velocity",
+    x = "Week",
+    y = "Mean % Effort",
+    color = "Velocity Band"
+  ) +
+  theme_classic() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r}
+# Modeling
+
+# Separate by position group
+bigs <- weekly_band_effort_by_group %>%
+  filter(Position_Group == "BIGS")
+
+skill <- weekly_band_effort_by_group %>%
+  filter(Position_Group == "SKILL")
+
+combo <- weekly_band_effort_by_group %>%
+  filter(Position_Group == "COMBO")
+
+# Bigs Model
+model_bigs <- lm(
+  mean_weekly_max_velocity ~ mean_V2 + mean_V3 + mean_V4 + mean_V5 + mean_V6 + mean_V7 + mean_V8, data = bigs
+  )
+summary(model_bigs)
+
+# Skill Model
+model_skill <- lm(
+  mean_weekly_max_velocity ~ mean_pct_V2 + mean_pct_V3 + mean_pct_V4 + mean_pct_V5 + mean_pct_V6 + mean_pct_V7 + mean_pct_V8, data = skill
+  )
+summary(model_skill)
+
+# Combo Model
+model_combo <- lm(
+  mean_weekly_max_velocity ~ mean_pct_V2 + mean_pct_V3 + mean_pct_V4 + mean_pct_V5 + mean_pct_V6 + mean_pct_V7 + mean_pct_V8, data = combo)
+summary(model_combo)
 ```
 
 ## Are relative efforts and bands more advantageous than the absolute bands provided?
