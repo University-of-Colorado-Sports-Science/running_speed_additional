@@ -1056,11 +1056,17 @@ Fix above code so that ID_95 last week isnt V2
 
 ## What is the variation at the team level and at each individual athlete level?
 
-  Looking at team data as a whole, since January 1, 2024 there is absolute no deviance from 0. That means that since January 1, 2024, the team has had the same average running imbalance of 0. This makes sense given that the team is so large and that imbalances can go from -100% to 100%. This suggests that throughout this time, at no point was there a team sway to one side. There also weren't any points since January 1, 2024 that the team had any large spikes in average absolute value of running imbalance. This suggests that at no point throughout the season were they largers pikes than normal in running imbalance. 
+  Looking at team data as a whole, since January 1, 2024 there is absolute no deviance from 0. That means that since January 1, 2024, the team has had the same average running imbalance of 0. This makes sense given that the team is so large and that imbalances can go from -100% to 100%. This suggests that throughout this time, at no point was there a team sway to one side. There also weren't any points since January 1, 2024 that the team had any large spikes in average absolute value of running imbalance. This suggests that at no point throughout the season were there larger spikes than normal in running imbalance. 
   Each player tends to have a very unique trend in their running imbalance. Looking at how the team varies but also at how each player varies throughout the season, it's hard to make out any pattern that's applicable to most people. The variance of running imbalance varies greatly between each player. Instead we looked at the variances between players who were injured and those who were not. Based on three different bootstrapped findings, we can see that the variances between players who were injured and those who were not were statistically significant.
+  
   For the first bootstrap, we compared the variance of the pooled groups meaning that the variance in running imbalance for players who were injured and those who were not were compared. This resulted in a 90% confidence interval which suggested that the difference in variance between the two groups is between 0.30 and 3.45. This suggests that when looking at the variance of the two groups separately but all the players are pooled together, the variances will most likely be different by factor between 0.30 and 3.45 and the variance for the injured pool will be greater than that of the uninjured pool.
   For the second bootstrap, each player's variance was taken individually. This unpooled approach was taken to see if an individual player's variance in running imbalance could potentially be related to HSI risk. The bootstrap algorithm in this case took the averaged variances of the bootstrapped sample for each group and compared them. This bootstrap produced a 90% confidence interval for the difference in average variance between the two groups is 0.79 to 1.32. These results suggest that players who sustained a hamstring injury since January 1, 2024 had, on average, a greater variance in their running imbalance by about 1.06. This suggests that there is a relationship between variance in running imbalance and HSI risk. This found increase in variability will be used to address the following questions.
   For the third bootstrap, we wanted to see if there was a difference in the average mean absolute value in running imbalance between players who were and weren't injured. The bootstrapping algorithm for this test calculated the average absolute distance value or each running imbalance measurement and found the average for each sample. This test found that at the 90% significance level, injured players had an average running imbalance absolute value between 0.06 and 0.32 greater than their uninjured counterparts. These values though, when we consider that the range of running imbalance goes from 0 to 100 is small and may be hard to detect when out in the field. 
+  
+  We also looked at the relationship between running imbalance and higher level position. From this analysis we found that there doesn't seem to be a super strong relationship between the three categories and average running imbalance variance. The bootstrap revealed that there are potentially significant differences between those who are Bigs and Combos. But, those who are Skills weren't able to differentiate themselves between the two groups. 
+  Along with this, we looked at the average absolute value in running imbalance for the three groups. This analysis told us that while Combos and Bigs tended to have the same average absolute value running imbalance, Skills had a significantly higher average absolute running imbalance value. 
+  We can see from the very last chart in this analysis that Skills make up the most of those with hamstring injuries followed closely by Combos and Bigs making up around half of the amount of Skills. This is interesting considering that the amounts of Bigs, Skills, and Combos within the Historical Running data set are all roughly the same. 
+
 ### Team Analysis
 ```{r Looking at team and player variances of running imbalance}
 #team variation
@@ -1145,12 +1151,12 @@ ggplot(data=Historical_Running_clean[Historical_Running_clean$anon_id %in% uninj
 ggplot(data=Historical_Running_clean[Historical_Running_clean$anon_id %in% uninjured_IDs,], aes(Running.Imbalance)) +
   geom_histogram(alpha = 0.75) +
   #adding in 95% CI for uninjured players
-  geom_vline(xintercept = quantile(Historical_Running_clean[Historical_Running_clean$anon_id %in% uninjured_IDs,]$Running.Imbalance, 0.025)) +
-  geom_vline(xintercept = quantile(Historical_Running_clean[Historical_Running_clean$anon_id %in% uninjured_IDs,]$Running.Imbalance, 0.975)) +
+  geom_vline(xintercept = quantile(Historical_Running_clean[Historical_Running_clean$anon_id %in% uninjured_IDs,]$Running.Imbalance, 0.05)) +
+  geom_vline(xintercept = quantile(Historical_Running_clean[Historical_Running_clean$anon_id %in% uninjured_IDs,]$Running.Imbalance, 0.95)) +
   geom_histogram(data = Historical_Running_clean[Historical_Running_clean$anon_id %in% injured_IDs,], aes(Running.Imbalance), fill = "#CFB87C", alpha = 0.75) +
   #adding in 95% CI for injured players
-  geom_vline(xintercept = quantile(Historical_Running_clean[Historical_Running_clean$anon_id %in% injured_IDs,]$Running.Imbalance, 0.025), color = "#CFB87C") +
-  geom_vline(xintercept = quantile(Historical_Running_clean[Historical_Running_clean$anon_id %in% injured_IDs,]$Running.Imbalance, 0.975), color = "#CFB87C") +
+  geom_vline(xintercept = quantile(Historical_Running_clean[Historical_Running_clean$anon_id %in% injured_IDs,]$Running.Imbalance, 0.05), color = "#CFB87C") +
+  geom_vline(xintercept = quantile(Historical_Running_clean[Historical_Running_clean$anon_id %in% injured_IDs,]$Running.Imbalance, 0.95), color = "#CFB87C") +
   xlim(-21,21) +
   labs(title = "Running Imbalance for Players with and without HSI since January 1, 2024")
 ```
@@ -1267,7 +1273,7 @@ group_distance <- data.frame(injured_dist = rep(NA,5000),
                 uninjured_dist = rep(NA,5000),
                 diff_in_dist = rep(NA, 5000))
 
-#bootstrap for variances, 1000 iterations
+#bootstrap for variances, 5000 iterations
 for(i in 1:5000){
   #random seed
   set.seed(i) 
@@ -1298,26 +1304,232 @@ ggplot(data = group_distance) +
 ```
 
 
-```{r Removing unnecessary objects from running imbalance variance analysis}
+```{r Removing unnecessary objects from loops}
 #removing junk that came from the loops
 remove(i,team_mean, team_sd, injured_sample, uninjured_sample, group_variances, injured_data, uninjured_data, mean_player_variances, group_distance)
 ```
 
 
 ### Position Analysis
-```{r}
+```{r sorting player into general positions}
 #making lists to sort position into larger categories
 COMBO <- c("QB","LB","TE","RB", "ILB")
 BIG <- c("OL", "DL", "DE", "DT")
 SKILL <- c("WR", "DB", "CB", "SAF")
+Positions <- c("COMBO", "BIG", "SKILL")
 
-#sorting players into which category they are in
+#giving positions to incident report
 Incident_Report_clean <- Incident_Report_clean %>%
   mutate(Specific.Position = Position,
-         Position = case_when(Position %in% COMBO ~ "COMBO",
-                               Position %in% BIG ~ "BIG",
-                               Position %in% SKILL ~ "SKILL"))
+         Position = case_when(Specific.Position %in% COMBO ~ "COMBO",
+                               Specific.Position %in% BIG ~ "BIG",
+                               Specific.Position %in% SKILL ~ "SKILL"))
+
+#giving positions to catapult session
+Catapult_Session_clean <- Catapult_Session_clean %>%
+  mutate(Specific.Position = Primary.Position,
+         Position = case_when(Primary.Position %in% COMBO ~ "COMBO",
+                               Primary.Position %in% BIG ~ "BIG",
+                               Primary.Position %in% SKILL ~ "SKILL"))
+
+#only taking IDs and position names and categories
+incident_info <- Incident_Report_clean[,c("anon_id", "Position", "Specific.Position")]
+catapult_info <- Catapult_Session_clean[,c("anon_id", "Position", "Specific.Position")]
+
+#comprehensive list of IDs, their position, and category
+info <- distinct(rbind(incident_info, catapult_info))
+
+#add this only historical running
+Historical_Running_clean <- left_join(Historical_Running_clean, info, by="anon_id",
+                                      relationship="many-to-many") %>%
+  #calculating each player's variance in running imbalance
+  group_by(anon_id) %>%
+  mutate(Player.Variance = var(Running.Imbalance)) %>%
+  ungroup()
 ```
+
+
+```{r Looking at Running Imbalance }
+for(i in 1:3){
+  p <- ggplot(data=Historical_Running_clean[Historical_Running_clean$Position==Positions[i],],
+              aes(Running.Imbalance)) +
+    geom_histogram() +
+    labs(subtitle=Positions[i])
+  
+  print(p)
+}
+```
+
+```{r}
+Player_Summary_Stats <- distinct(Historical_Running_clean[,c("anon_id", "Position",
+                                                 "Specific.Position", 
+                                                 "Player.Variance")])
+```
+
+
+```{r}
+for(i in 1:3){
+  p <- ggplot(data=Player_Summary_Stats[Player_Summary_Stats$Position==Positions[i],],
+              aes(Player.Variance)) +
+    geom_histogram() +
+    labs(subtitle=Positions[i])
+  
+  print(p)
+}
+```
+
+
+#### Bootstrapping Different Positions
+```{r}
+#splitting up data set into the different categories
+COMBOS <- Player_Summary_Stats %>%
+  filter(Position == "COMBO") %>%
+  na.omit()
+
+SKILLS <- Player_Summary_Stats %>%
+  filter(Position == "SKILL") %>%
+  na.omit()
+
+BIGS <- Player_Summary_Stats %>%
+  filter(Position == "BIG") %>%
+  na.omit()
+
+group_avg_variance <- data.frame(COMBO_var = rep(NA, 5000),
+                                 SKILL_var = rep(NA, 5000),
+                                 BIG_var = rep(NA, 5000))
+```
+
+
+```{r}
+for(i in 1:5000){
+  set.seed(i)
+  combo_sample <- sample_n(COMBOS, size=20, replace=TRUE)
+  skill_sample <- sample_n(SKILLS, size=22, replace=TRUE)
+  big_sample <- sample_n(BIGS, size=24, replace=TRUE)
+  
+  group_avg_variance[i,1] <- mean(na.omit(combo_sample$Player.Variance))
+  group_avg_variance[i,2] <- mean(na.omit(skill_sample$Player.Variance))
+  group_avg_variance[i,3] <- mean(na.omit(big_sample$Player.Variance))
+}
+```
+
+
+```{r}
+ggplot(data=group_avg_variance, aes(COMBO_var)) +
+  geom_histogram() +
+  geom_vline(xintercept = quantile(group_avg_variance$COMBO_var, 0.05)) +
+  geom_vline(xintercept = quantile(group_avg_variance$COMBO_var, 0.95))
+
+ggplot(data=group_avg_variance, aes(SKILL_var)) +
+  geom_histogram() +
+  geom_vline(xintercept = quantile(group_avg_variance$SKILL_var, 0.05)) +
+  geom_vline(xintercept = quantile(group_avg_variance$SKILL_var, 0.95))
+
+ggplot(data=group_avg_variance, aes(BIG_var)) +
+  geom_histogram() +
+  geom_vline(xintercept = quantile(group_avg_variance$BIG_var, 0.05)) +
+  geom_vline(xintercept = quantile(group_avg_variance$BIG_var, 0.95))
+
+ggplot(data=group_avg_variance) +
+  geom_histogram(aes(COMBO_var), alpha=0.5, fill="red") +
+  geom_histogram(aes(SKILL_var), alpha=0.5, fill="blue") +
+  geom_histogram(aes(BIG_var), alpha=0.5, fill="yellow")
+```
+```{r}
+var_confints <- data.frame(Category = c("COMBO", "SKILL", "BIG"),
+                       Lower_Bound = c(quantile(group_avg_variance$COMBO_var, 0.05), 
+                                       quantile(group_avg_variance$SKILL_var, 0.05), 
+                                       quantile(group_avg_variance$BIG_var, 0.05)),
+                       Median = c(quantile(group_avg_variance$COMBO_var, 0.5),
+                                  quantile(group_avg_variance$SKILL_var, 0.5),
+                                  quantile(group_avg_variance$BIG_var, 0.5)),
+                       Upper_Bound = c(quantile(group_avg_variance$COMBO_var, 0.95),
+                                       quantile(group_avg_variance$SKILL_var, 0.95),
+                                       quantile(group_avg_variance$BIG_var, 0.95)))
+head(var_confints)
+
+ggplot(data=var_confints, aes(x=Category, y=Median, ymin=Lower_Bound, ymax=Upper_Bound)) +
+  geom_pointrange() +
+  labs(y="Running Imbalance Variance 90% CI")
+```
+```{r}
+Historical_Running_clean <- Historical_Running_clean %>%
+  mutate(Abs.Value.Running.Imbalance = abs(Running.Imbalance))
+
+COMBOS <- Historical_Running_clean %>%
+  filter(Position == "COMBO")
+
+SKILLS <- Historical_Running_clean %>%
+  filter(Position == "SKILL")
+
+BIGS <- Historical_Running_clean %>%
+  filter(Position == "BIG")
+
+group_avg_dist <- data.frame(COMBO_dist = rep(NA, 5000),
+                             SKILL_dist = rep(NA, 5000),
+                             BIG_dist = rep(NA, 5000))
+```
+
+```{r}
+for(i in 1:5000){
+  set.seed(i)
+  combo_sample <- sample_n(COMBOS, size=1203, replace=TRUE)
+  skill_sample <- sample_n(SKILLS, size=1635, replace=TRUE)
+  big_sample <- sample_n(BIGS, size=1224, replace=TRUE)
+  
+  group_avg_dist[i,1] <- mean(na.omit(combo_sample$Abs.Value.Running.Imbalance))
+  group_avg_dist[i,2] <- mean(na.omit(skill_sample$Abs.Value.Running.Imbalance))
+  group_avg_dist[i,3] <- mean(na.omit(big_sample$Abs.Value.Running.Imbalance))
+}
+```
+
+
+```{r}
+ggplot(data=group_avg_dist) +
+  geom_histogram(aes(COMBO_dist), alpha=0.5, fill="red") +
+  geom_histogram(aes(SKILL_dist), alpha=0.5, fill="blue") +
+  geom_histogram(aes(BIG_dist), alpha=0.5, fill="yellow") +
+  labs(x="Average Absolute Value Running Imbalance")
+```
+
+
+```{r}
+dist_confints <- data.frame(Category = c("COMBO", "SKILL", "BIG"),
+                       Lower_Bound = c(quantile(group_avg_dist$COMBO_dist, 0.05), 
+                                       quantile(group_avg_dist$SKILL_dist, 0.05), 
+                                       quantile(group_avg_dist$BIG_dist, 0.05)),
+                       Median = c(quantile(group_avg_dist$COMBO_dist, 0.5),
+                                  quantile(group_avg_dist$SKILL_dist, 0.5),
+                                  quantile(group_avg_dist$BIG_dist, 0.5)),
+                       Upper_Bound = c(quantile(group_avg_dist$COMBO_dist, 0.95),
+                                       quantile(group_avg_dist$SKILL_dist, 0.95),
+                                       quantile(group_avg_dist$BIG_dist, 0.95)))
+head(dist_confints)
+
+ggplot(data=dist_confints, aes(x=Category, y=Median, ymin=Lower_Bound, ymax=Upper_Bound)) +
+  geom_pointrange() +
+  labs(y="Running Imbalance Absolute Value 90% CI")
+```
+```{r}
+Injury_Incidents <- distinct(Incident_Report_clean[,c("anon_id", "Position", "Date.of.Injury")])
+
+Position_counts <- na.omit(distinct(Historical_Running_clean[,c("anon_id", "Position")]))
+
+ggplot(Injury_Incidents, aes(Position)) +
+  geom_bar()
+
+ggplot(Position_counts, aes(Position)) +
+  geom_bar()
+```
+
+```{r Removing unnecessary objects from environment}
+remove(big_sample, BIGS, catapult_info, combo_sample, COMBOS, confints, group_avg_variance,
+       incident_info, info, p, Player_Summary_Stats, skill_sample, SKILLS, BIG, COMBO, i,
+       Positions, SKILL, dist_confints, group_avg_variance, group_avg_dist, group_distance, group_variances,
+       injured_data, injured_sample, Injury_Incidents, mean_player_variances, 
+       Position_counts, var_confints)
+```
+
 
 ## What is a meaningful change? What red flags should go off when we see a week-to-week change in running imbalance?
 
@@ -1565,6 +1777,56 @@ if(abs(Kendall_Cor>0.2) & df<=3){ #linear trend in data
 ```
 
 
+### Detectable Trend with Injury Risk
+```{r}
+trends <- data.frame(ID = all_IDs,
+                     KC = rep(0, 71))
+for(i in 1:71){
+  #only plotting if there are over 15 data points for each player
+  if(nrow(Historical_Running_clean[Historical_Running_clean$anon_id == all_IDs[i],])>15){
+    #calculating how strong of a non linear trend there is using a gam
+    df <- summary(gam(Running.Imbalance~s(Days.Since.Start),
+              data=Historical_Running_clean[Historical_Running_clean$anon_id == all_IDs[i],]))$edf
+    #calculating how strong of a linear trend there is using kendall correlation
+    Kendall_Cor <- cor(x=Historical_Running_clean[Historical_Running_clean$anon_id == all_IDs[i],]$Days.Since.Start, y=Historical_Running_clean[Historical_Running_clean$anon_id == all_IDs[i],]$Running.Imbalance, method="kendall")
+    
+    trends[trends$ID == all_IDs[i],2] = Kendall_Cor
+  
+    if(all_IDs[i] %in% injured_IDs){
+      p <- ggplot(data=Historical_Running_clean[Historical_Running_clean$anon_id == all_IDs[i],],
+             aes(Date, Running.Imbalance)) +
+        geom_point(color="skyblue") +
+        geom_line(color="skyblue") +
+        labs(subtitle=Kendall_Cor)
+    }
+    if(!(all_IDs[i] %in% injured_IDs)){
+      p <- ggplot(data=Historical_Running_clean[Historical_Running_clean$anon_id == all_IDs[i],],
+             aes(Date, Running.Imbalance)) +
+        geom_point() +
+        geom_line() +
+        labs(subtitle=Kendall_Cor)
+    }
+    
+    print(p)
+  }
+}
+
+#plotted only from January 1, 2025 to May 1, 2025
+```
+
+
+```{r}
+trends <- trends %>%
+  mutate(injured = ifelse(ID %in% injured_IDs,1,0))
+
+ggplot(trends[trends$KC>0 & trends$injured==1,], aes(KC)) +
+  geom_histogram()
+
+ggplot(trends[trends$KC>0 & trends$injured==0,], aes(KC)) +
+  geom_histogram()
+```
+
+
 ```{r removing unnecessary objects from section}
 remove(i, p, df, Kendall_Cor)
 ```
@@ -1573,7 +1835,7 @@ remove(i, p, df, Kendall_Cor)
 ## Is running imbalance sensitive enough of a metric to use as a prognosis tool versus a rehab tool?
 
   Based on the analysis below, we can see that by solely using variance in running imbalance from the time of the injury to the end of the predicted return-to-play range is not a very strong predictor for whether or not it will take longer for a player to recover or not. In this analysis, we used the running imbalance in the time frame starting with the injury date to the end of the prognosis time frame. With these specific running imbalance values, we calculated the variance in running imbalance and whether or not the athlete returned to play within the predicted time frame or not. 
-  This analysis found that when using the variance in these time frames as the only predictor in a logistic regression model, the slope coefficient associated with the variance was statistically significant at the $\alpha = 0.01$ significance level. With that though, the accuracy of the model was only around 0.6 suggesting that it wasn't super strong in practice.
+  This analysis found that when using the variance in these time frames as the only predictor in a logistic regression model, the slope coefficient associated with the variance was statistically significant at the $\alpha = 0.01$ significance level. With that though, the cross validated accuracy of the model was only around 0.6 suggesting that it wasn't super strong in practice.
   In order to understand the impact that variance in running imbalance had on whether or not a player returned in the predicted time frame or not, we performed a bootstrap. We separated the observations in which players did and did not return in the predicted time frame into two different data sets. We then sampled from each of these two data sets and calculated the average variance for each sample. This was repeated 5000 times. This gave us an estimate of the average variance in running imbalance for players who returned within the predicted time frame and those who did not.
   This bootstrap revealed that players who did not return within the predicted time frame had a variance greater by roughly 1.2 during their time of recovery than those who returned on time. This tells us that while variance in running imbalance is not directly strong enough to predict whether or not an athlete will return within the predicted time frame, it can be used to supplement prognosis or make adjustments to the prognosis during the time of recovery of a HSI. 
 
