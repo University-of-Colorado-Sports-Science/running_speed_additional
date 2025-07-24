@@ -18,6 +18,7 @@ library(gt)
 library(boot)
 library(mgcv)
 library(lme4)
+library(leaps)
 ```
 
 
@@ -636,8 +637,6 @@ unique(weekly_velocity_efforts$anon_id) %>%
 ```
 
 ```{r}
-
-
 # Pick one player
 player_id <- "ID_93"
 
@@ -681,7 +680,7 @@ ggplot(player_counts_long, aes(x = week, y = effort_count, fill = velocity_band)
   ) +
   theme_classic()
 ```
-#### Eploring correlations between bands and max speeds
+#### Exploring correlations between bands and max speeds
 
 ```{r}
 
@@ -1267,11 +1266,186 @@ relative_bands_long <- relative_bands %>%
   )
 ```
 
+```{r}
+COMBO <- c("QB","LB","TE","RB", "ILB")
+BIG <- c("OL", "DL", "DE", "DT")
+SKILL <- c("WR", "DB", "CB", "SAF")
+Positions <- c("COMBO", "BIG", "SKILL")
+
+weekly_sprint_exposure <- left_join(weekly_sprint_exposure,player_positions, by = "anon_id", relationship = "many-to-many")
+
+weekly_sprint_exposure <- weekly_sprint_exposure %>%
+  mutate(Position = case_when(Primary.Position %in% COMBO ~ "COMBO",
+                               Primary.Position %in% BIG ~ "BIG",
+                               Primary.Position %in% SKILL ~ "SKILL"))
+
+weekly_sprint_exposure <- distinct(weekly_sprint_exposure)
+
+max_velocities <- weekly_velocity_efforts[,c("anon_id","week","pct_of_max_velocity")]
+
+weekly_sprint_exposure <- left_join(weekly_sprint_exposure, max_velocities, by = c("anon_id", "week"), relationship="many-to-many")
+
+
+
+
+sprint_exposure_big <- weekly_sprint_exposure %>%
+  filter(Position == "BIG") %>%
+  group_by(week) %>%
+  mutate(avg_pct_max = mean(pct_of_max_velocity),
+         avg_V8 = mean(`V8 (90-100%)`),
+         avg_V7 = mean(`V7 (80-90%)`),
+         avg_V6 = mean(`V6 (70-80%)`),
+         avg_V5 = mean(`V5 (60-70%)`),
+         avg_V4 = mean(`V4 (50-60%)`),
+         avg_V3 = mean(`V3 (40-50%)`),
+         avg_V2 = mean(`V2 (<40%)`)) %>%
+  ungroup() %>%
+  na.omit()
+
+sprint_exposure_combo <- weekly_sprint_exposure %>%
+  filter(Position == "COMBO")  %>%
+  group_by(week) %>%
+  mutate(avg_pct_max = mean(pct_of_max_velocity),
+         avg_V8 = mean(`V8 (90-100%)`),
+         avg_V7 = mean(`V7 (80-90%)`),
+         avg_V6 = mean(`V6 (70-80%)`),
+         avg_V5 = mean(`V5 (60-70%)`),
+         avg_V4 = mean(`V4 (50-60%)`),
+         avg_V3 = mean(`V3 (40-50%)`),
+         avg_V2 = mean(`V2 (<40%)`)) %>%
+  ungroup() %>%
+  na.omit()
+
+sprint_exposure_skill <- weekly_sprint_exposure %>%
+  filter(Position == "SKILL")  %>%
+  group_by(week) %>%
+  mutate(avg_pct_max = mean(pct_of_max_velocity),
+         avg_V8 = mean(`V8 (90-100%)`),
+         avg_V7 = mean(`V7 (80-90%)`),
+         avg_V6 = mean(`V6 (70-80%)`),
+         avg_V5 = mean(`V5 (60-70%)`),
+         avg_V4 = mean(`V4 (50-60%)`),
+         avg_V3 = mean(`V3 (40-50%)`),
+         avg_V2 = mean(`V2 (<40%)`)) %>%
+  ungroup() %>%
+  na.omit()
+  
+```
+
+When I built the models that considered the relative bands instead of the absolute bands provided, I found that initially, the results were a lot better than the previous models with the absolute bands. This suggests that the relative bounds which are segmented into 10% chunks of all time maximum velocity for each player is a lot more indicative of effort and therefore their percentage of maximum velocity in a given week. We are able to see though that there is a lot of multicollinearity within the relative bands calculated. 
+
+```{r}
+# Modeling
+
+# Bigs Model
+model_big <- lm(avg_pct_max~avg_V2+avg_V3+avg_V4+avg_V5+avg_V6+avg_V7+avg_V8,
+                data=sprint_exposure_big)
+summary(model_big)
+
+
+# Skill Model
+model_skill <- lm(avg_pct_max~avg_V2+avg_V3+avg_V4+avg_V5+avg_V6+avg_V7+avg_V8,
+                data=sprint_exposure_skill)
+summary(model_skill)
+
+
+# Combo Model
+model_combo <- lm(avg_pct_max~avg_V2+avg_V3+avg_V4+avg_V5+avg_V6+avg_V7+avg_V8,
+               data=sprint_exposure_combo)
+summary(model_combo)
+
+```
+
+Looking at the correlations between all of the predictors as well as the response variable in the model we can see that a lot of the predictors have super strong correlations which each other, some more so than they are with the response. This suggests that the issue with the models above is that multicollinearity is bogging them down and we are not seeing the true relationships between the predictors and the response. 
+
+```{r Looking at collinear predictors}
+cor(sprint_exposure_big[,13:20])
+cor(sprint_exposure_skill[,13:20])
+cor(sprint_exposure_combo[,13:20])
+```
+
+All of the models below are the best 3 predictor models that resulted for each position after running the best subsets algorithm. All of the following have reductions in adjusted-$R^2$ but they don't seem significant considering that we took out over half of the predictors and maintained a relatively similar adjusted-$R^2$ value. 
+
+```{r running best subsets on the models to limit collinearity}
+#Bigs
+
+#best_sub_big <- regsubsets(avg_pct_max~avg_V2+avg_V3+avg_V4+avg_V5+avg_V6+avg_V7+avg_V8,
+#                data=sprint_exposure_big, method="exhaustive")
+#summary(best_sub_big)
+
+model_big <- lm(avg_pct_max~avg_V2+avg_V6+avg_V7,
+                data=sprint_exposure_big)
+summary(model_big)
+
+
+#Skills
+
+#best_sub_skill <- regsubsets(avg_pct_max~avg_V2+avg_V3+avg_V4+avg_V5+avg_V6+avg_V7+avg_V8,
+#                data=sprint_exposure_skill, method="exhaustive")
+#summary(best_sub_skill)
+
+model_skill <- lm(avg_pct_max~avg_V2+avg_V5+avg_V6,
+                data=sprint_exposure_skill)
+summary(model_skill)
+
+#Combos
+#best_sub_combo <- regsubsets(avg_pct_max~avg_V2+avg_V3+avg_V4+avg_V5+avg_V6+avg_V7+avg_V8,
+#                data=sprint_exposure_combo, method="exhaustive")
+#summary(best_sub_combo)
+
+model_combo <- lm(avg_pct_max~avg_V2+avg_V4+avg_V5,
+               data=sprint_exposure_combo)
+summary(model_combo)
+```
+Since the models perform roughly the same with just 3 predictors as they do with all 7, it may make sense to instead truncate into more general bins. This may help us understand the relationship with low, medium and high effort with weekly maximum velocity. 
+
+```{r}
+sprint_exposure_big <- sprint_exposure_big %>%
+  mutate(avg_low = (avg_V2+avg_V3)/2,
+         avg_medium = (avg_V4+avg_V5+avg_V6)/3,
+         avg_high = (avg_V7+avg_V8)/2)
+
+sprint_exposure_skill <- sprint_exposure_skill %>%
+  mutate(avg_low = (avg_V2+avg_V3)/2,
+         avg_medium = (avg_V4+avg_V5+avg_V6)/3,
+         avg_high = (avg_V7+avg_V8)/2)
+
+sprint_exposure_combo <- sprint_exposure_combo %>%
+  mutate(avg_low = (avg_V2+avg_V3)/2,
+         avg_medium = (avg_V4+avg_V5+avg_V6)/3,
+         avg_high = (avg_V7+avg_V8)/2)
+```
+
+
+```{r}
+#bigs
+model_big_general <- lm(avg_pct_max~avg_low+avg_medium+avg_high,
+                        data=sprint_exposure_big)
+summary(model_big_general)
+
+#skills
+model_skill_general <- lm(avg_pct_max~avg_low+avg_medium+avg_high,
+                        data=sprint_exposure_skill)
+summary(model_skill_general)
+
+#combos
+model_combo_general <- lm(avg_pct_max~avg_low+avg_medium+avg_high,
+                        data=sprint_exposure_combo)
+summary(model_combo_general)
+```
+Still pretty bad, I am going to use principle components regression to see if there are other relationships we are missing
+
+```{r}
+preds <- sprint_exposure_big[,14:20]
+
+pc_loadings <- prcomp(preds, scale=TRUE)$rotation[,c(1,2,3)]
+pc_loadings
+```
 
 ## How does sprinting exposure (# of efforts, % max reached) relate to incidence of hamstring injuries?
 
 ```{r}
-# Join relative_bands dataset with injury data
+# Join relative_bands data set with injury data
 
 Incident_dates <- Incident_Report_clean %>%
   filter(Date >= as.Date("2024-06-30") & Date <= as.Date("2025-07-01"))
@@ -1288,8 +1462,8 @@ injuries_and_running <- injured_data %>%
   mutate(injury = ifelse(is.na(injury), 0, injury))
 ```
 
-```{r}
 
+```{r}
 # For demonstration: pick one player (or loop over them)
 player_id <- "ID_306"
 
@@ -1329,6 +1503,7 @@ ggplot(plot_data, aes(x = week)) +
   ) +
   theme_classic()
 ```
+
 
 ```{r}
 # Loop over injured athletes and create their plots
@@ -1384,7 +1559,6 @@ unique(injuries_and_running$anon_id) %>%
   })
 ```
 Fix above code so that ID_95 last week isnt V2
-
 
 ```{r}
 model_injury <- glm(injury ~ pct_of_max_velocity,
@@ -1658,6 +1832,26 @@ print(t_test_3week_change)
 ```
 None of these showed significantly different means
 
+
+```{r removing unnecessary objects for running imbalance analysis}
+#removing extra data
+remove(band_long, bigs, clean_anons, combo, cor_data, cor_matrix, daily_90_counts,
+       full_grid, hit_90_counts, ID_11, Incident_dates, injured_data, injuries_and_running,
+       injury_by_group, injury_weeks, max_velocities, model_all_bands, model_big,
+       model_bigs, model_combo, model_skill, player_counts_long, player_data,
+       player_positions, plot_data, plots_by_position, position_averages,
+       position_averages_with_team, pre_injury_weeks, QBs, relative_bands,
+       relative_bands_long, skill, sprint_counts, sprint_exposure_big,
+       sprint_exposure_combo, sprint_exposure_skill, sprint_injury_table, V8, 
+       weekly_90_counts, weekly_band_effort_by_group, weekly_effort, weekly_effort_long,
+       weekly_effort_wide, weekly_max_pct, weekly_max_velocity, weekly_sprint_counts,
+       weekly_sprint_counts_lagged, weekly_sprint_exposure, weekly_velocity_efforts)
+
+#removing extra values and functions
+remove(all_athletes, all_weeks, band_levels, BIG, COMBO, SKILL, injured_ids,
+       injury_week_nums, overall_avg, player_id, positions, Positions, qb_avg, team_avg,
+       plot_hit_90_by_position)
+```
 
 
 # Section 2: Running Imbalance
