@@ -740,6 +740,14 @@ ggplot(V8, aes(x = pct_V8, y = pct_of_max_velocity_change)) +
 weekly_velocity_efforts <- weekly_velocity_efforts %>%
   group_by(anon_id) %>%
   mutate(
+    lag_V2 = lag(V2),
+    lag_V3 = lag(V3),
+    lag_V4 = lag(V4),
+    lag_V5 = lag(V5),
+    lag_V6 = lag(V6),
+    lag_V7 = lag(V7),
+    lag_V8 = lag(V8),
+    
     lag_pct_V2 = lag(pct_V2),
     lag_pct_V3 = lag(pct_V3),
     lag_pct_V4 = lag(pct_V4),
@@ -798,6 +806,14 @@ weekly_band_effort_by_group <- weekly_velocity_efforts %>%
     mean_V7 = mean(V7, na.rm = TRUE),
     mean_V8 = mean(V8, na.rm = TRUE),
     
+    mean_lag_V2 = mean(lag_V2, na.rm = TRUE),
+    mean_lag_V3 = mean(lag_V3, na.rm = TRUE),
+    mean_lag_V4 = mean(lag_V4, na.rm = TRUE),
+    mean_lag_V5 = mean(lag_V5, na.rm = TRUE),
+    mean_lag_V6 = mean(lag_V6, na.rm = TRUE),
+    mean_lag_V7 = mean(lag_V7, na.rm = TRUE),
+    mean_lag_V8 = mean(lag_V8, na.rm = TRUE),
+    
     mean_pct_V2 = mean(pct_V2, na.rm = TRUE),
     mean_pct_V3 = mean(pct_V3, na.rm = TRUE),
     mean_pct_V4 = mean(pct_V4, na.rm = TRUE),
@@ -812,6 +828,7 @@ weekly_band_effort_by_group <- weekly_velocity_efforts %>%
   ) %>%
   ungroup()
 ```
+
 
 ```{r}
 
@@ -896,21 +913,83 @@ combo <- weekly_band_effort_by_group %>%
 
 # Bigs Model
 model_bigs <- lm(
-  mean_weekly_max_velocity ~ mean_V2 + mean_V3 + mean_V4 + mean_V5 + mean_V6 + mean_V7 + mean_V8, data = bigs
+  mean_weekly_max_velocity ~ mean_lag_V2 + mean_lag_V3 + mean_lag_V4 + mean_lag_V5 + mean_lag_V6 + mean_lag_V7 + mean_lag_V8, data = bigs
   )
 summary(model_bigs)
 
 # Skill Model
 model_skill <- lm(
-  mean_weekly_max_velocity ~ mean_pct_V2 + mean_pct_V3 + mean_pct_V4 + mean_pct_V5 + mean_pct_V6 + mean_pct_V7 + mean_pct_V8, data = skill
+  mean_weekly_max_velocity ~ mean_lag_V2 + mean_lag_V3 + mean_lag_V4 + mean_lag_V5 + mean_lag_V6 + mean_lag_V7 + mean_lag_V8, data = skill
   )
 summary(model_skill)
 
 # Combo Model
 model_combo <- lm(
-  mean_weekly_max_velocity ~ mean_pct_V2 + mean_pct_V3 + mean_pct_V4 + mean_pct_V5 + mean_pct_V6 + mean_pct_V7 + mean_pct_V8, data = combo)
+  mean_weekly_max_velocity ~ mean_lag_V2 + mean_lag_V3 + mean_lag_V4 + mean_lag_V5 + mean_lag_V6 + mean_lag_V7 + mean_lag_V8, data = combo)
 summary(model_combo)
 ```
+
+```{r}
+# Group correlation:
+
+# Select relevant variables
+vars <- c("mean_weekly_max_velocity", "mean_lag_V2", "mean_lag_V3", 
+          "mean_lag_V4", "mean_lag_V5", "mean_lag_V6", "mean_lag_V7", "mean_lag_V8")
+
+# Correlation matrices
+cor_bigs <- cor(bigs[, vars], use = "complete.obs")
+cor_skill <- cor(skill[, vars], use = "complete.obs")
+cor_combo <- cor(combo[, vars], use = "complete.obs")
+round(cor_bigs, 2)
+round(cor_skill, 2)
+round(cor_combo, 2)
+```
+
+
+```{r}
+# Reduce for better modeling
+bigs <- bigs %>%
+  mutate(
+    low_band = (mean_lag_V2 + mean_lag_V3) / 2,
+    mid_band = (mean_lag_V4 + mean_lag_V5 + mean_lag_V6) / 3,
+    high_band = (mean_lag_V7 + mean_lag_V8) / 2
+  )
+model_bigs_simple <- lm(mean_weekly_max_velocity ~ low_band + mid_band + high_band, data = bigs)
+summary(model_bigs_simple)
+
+
+# Skill Group
+skill <- skill %>%
+  mutate(
+    low_band = (mean_lag_V2 + mean_lag_V3 + mean_lag_V4) / 3,
+    mid_band = (mean_lag_V5 + mean_lag_V6) / 2,
+    high_band = (mean_lag_V7 + mean_lag_V8) / 2
+  )
+model_skill_simple <- lm(mean_weekly_max_velocity ~ low_band + mid_band + high_band, data = skill)
+summary(model_skill_simple)
+
+# Combo group
+combo <- combo %>%
+  mutate(
+    low_band = (mean_lag_V2 + mean_lag_V3) / 2,
+    mid_band = (mean_lag_V4 + mean_lag_V5) / 2,
+    high_band = (mean_lag_V6 + mean_lag_V7 + mean_lag_V8) / 3
+  )
+model_combo_simple <- lm(mean_weekly_max_velocity ~ low_band + mid_band + high_band, data = combo)
+summary(model_combo_simple)
+```
+Bigs model:
+  Statistically signficant overall and explains around 33% of the variation of max velocity. The low band is significantly negative. Every unit increase in the low band results in a decrease in max velocity. The mid and high bands are not significant but the high band shows a positive trend.
+  Based on this model, for bigs, more low-band effort may reduce weekly top speed, possibly indicating underexposure of high speeds. High-band efforts might help, but aren’t clearly impactful in this group.
+
+Skill model:
+  Almost significant. Low band has a negative effect, mid band has a positive effect, and high band is not significant. 
+  Based on this model, for skill players, more low-intensity exposure seems detrimental to max speed, while moderate band (V5–V6) exposure may enhance it.
+  
+Combo model:
+  Model is not significant. The combo position group contains many different type of positions (QBs, RBs, TEs, LBs) with different movement and velocities. This variability may obscure relationships.
+  
+Across groups, low-band exposure is consistently negatively related to peak weekly speed — suggesting that too much low-intensity work may reduce the capacity to reach high speeds.
 
 ## Are relative efforts and bands more advantageous than the absolute bands provided?
 
@@ -1481,6 +1560,279 @@ unique(injuries_and_running$anon_id) %>%
 ```
 Fix above code so that ID_95 last week isnt V2
 
+```{r}
+model_injury <- glm(injury ~ pct_of_max_velocity,
+                    data = injuries_and_running,
+                    family = "binomial")
+
+summary(model_injury)
+```
+
+```{r}
+# Get summary stats for both injury and non injury
+
+# Clean and get date format
+injuries_and_running_clean <- injuries_and_running %>%
+  mutate(week_formatted = format(as.Date(week), "%m-%d-%Y")) %>%
+  distinct(anon_id, week, .keep_all = TRUE)
+
+# Filter for only injury weeks
+injury_weeks <- injuries_and_running_clean %>%
+  filter(injury == 1) %>%
+  mutate(injury_event = paste0(anon_id, "__", week_formatted))
+
+# Calculate statistics for injury weeks
+injury_mean <- mean(injury_weeks$pct_of_max_velocity, na.rm = TRUE)
+
+injury_summary_stats <- injury_weeks %>%
+  summarise(
+    mean_pct = mean(pct_of_max_velocity, na.rm = TRUE),
+    sd_pct = sd(pct_of_max_velocity, na.rm = TRUE),
+    n = sum(!is.na(pct_of_max_velocity))
+  )
+# Confidence interval 
+se <- injury_summary_stats$sd_pct / sqrt(injury_summary_stats$n)
+t_crit <- qt(0.975, df = injury_summary_stats$n - 1)
+lower <- injury_summary_stats$mean_pct - t_crit * se
+upper <- injury_summary_stats$mean_pct + t_crit * se
+# Print
+cat("95% CI for mean pct_of_max_velocity:", round(lower,2), "-", round(upper,2))
+
+
+# Filter for non-injury weeks
+non_injury_weeks <- injuries_and_running_clean %>%
+  filter(injury == 0)
+
+# Get statistics for non-injury weeks
+non_injury_mean <- mean(non_injury_weeks$pct_of_max_velocity, na.rm = TRUE)
+
+non_injury_summary_stats <- non_injury_weeks %>%
+  summarise(
+    mean_pct = mean(pct_of_max_velocity, na.rm = TRUE),
+    sd_pct = sd(pct_of_max_velocity, na.rm = TRUE),
+    n = sum(!is.na(pct_of_max_velocity))
+  )
+
+# Confidence interval
+non_injury_se <- non_injury_summary_stats$sd_pct / sqrt(non_injury_summary_stats$n)
+non_injury_t_crit <- qt(0.975, df = non_injury_summary_stats$n - 1)
+non_injury_lower <- non_injury_summary_stats$mean_pct - non_injury_t_crit * non_injury_se
+non_injury_upper <- non_injury_summary_stats$mean_pct + non_injury_t_crit * non_injury_se
+
+# Print results
+cat("95% CI for mean pct_of_max_velocity (non-injury weeks):", 
+    round(non_injury_lower, 2), "-", round(non_injury_upper, 2))
+```
+
+```{r}
+# T-test to compare pct_of_max_velocity in injuries and non injuries that week
+t_test <- t.test(
+  pct_of_max_velocity ~ injury, 
+  data = injuries_and_running_clean,
+  var.equal = FALSE # use TRUE if you assume equal variances
+)
+
+# Print results
+print(t_test)
+```
+While the mean % of max velocity is higher for the injury group, the difference is small and not significant.
+
+
+```{r}  
+# Plot of % Max Velocity during injury and non injury weeks
+ggplot(injuries_and_running_clean, aes(x = week, y = pct_of_max_velocity)) +
+  geom_point(aes(color = factor(injury))) +
+  scale_color_manual(values = c("0" = "black", "1" = "red"),
+                     labels = c("No Injury", "Injury"),
+                     name = "Injury Status") +
+  labs(
+    title = "% of Max Velocity by Week",
+    subtitle = paste("Mean % of Max Velocity, Injury: ", round(injury_mean, 2), " |  Mean % of Max Velocity, Non-Injury: ", round(non_injury_mean, 2)),
+    x = "Week",
+    y = "% of Max Velocity Reached"
+  ) +
+  theme_classic()
+
+
+ggplot(injury_weeks, aes(x = week, y = pct_of_max_velocity)) +
+  geom_point(color = "red") +
+  labs(
+    title = "% of Max Velocity During Injury Weeks",
+    subtitle = paste("% of Max Velocity Mean: ", round(injury_mean, 2)),
+    x = "Week",
+    y = "% of Max Velocity"
+  ) +
+  theme_classic()
+
+# Create bar chart
+ggplot(injury_weeks, aes(x = factor(injury_event), y = pct_of_max_velocity)) +
+  geom_col(fill = "#CFB87C") +
+  geom_text(aes(label = round(pct_of_max_velocity, 1)),  # round to 1 decimal place
+            vjust = -0.5, size = 2.75) +
+  labs(
+    title = "% of Max Velocity During Injury Weeks",
+    subtitle = paste("Mean: ", round(injury_mean, 2)),
+    x = "Injury Event",
+    y = "% of Max Velocity"
+  ) +
+  theme_classic() + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+
+```{r}
+# Looking into the week before injury
+
+# Get % of max velocity for week prior
+week_prior <- injuries_and_running_clean %>%
+  group_by(anon_id) %>%
+  arrange(week) %>%
+  mutate(
+    lag1_pct_of_max_velocity = lag(pct_of_max_velocity, 1),
+    lag2_pct_of_max_velocity = lag(pct_of_max_velocity, 2),
+    lag3_pct_of_max_velocity = lag(pct_of_max_velocity, 3),
+    change_last2weeks = lag1_pct_of_max_velocity - lag2_pct_of_max_velocity,
+    sum_last2weeks = lag1_pct_of_max_velocity + lag2_pct_of_max_velocity,
+    sum_last3weeks = lag1_pct_of_max_velocity + lag2_pct_of_max_velocity + lag3_pct_of_max_velocity
+    ) %>%
+  ungroup()
+
+# Get Injury Event variable and Injury dataset
+injury_week_prior <- week_prior %>%
+  filter(injury == 1) %>%
+  mutate(injury_event = paste0(anon_id, "__", week_formatted))
+
+# Get non-injury dataset
+non_injury_week_prior <- week_prior %>%
+  filter(injury == 0)
+
+# Get Means
+injury_week_prior_mean <- mean(injury_week_prior$lag1_pct_of_max_velocity)
+non_injury_week_prior_mean <- mean(non_injury_week_prior$lag1_pct_of_max_velocity)
+injury_week_prior_mean
+non_injury_week_prior_mean
+
+
+
+# Plot of % Max Velocity during injury and non injury weeks
+ggplot(week_prior, aes(x = week, y = lag1_pct_of_max_velocity)) +
+  geom_point(aes(color = factor(injury))) +
+  scale_color_manual(values = c("0" = "black", "1" = "red"),
+                     labels = c("No Injury", "Injury"),
+                     name = "Injury Status") +
+  labs(
+    title = "% of Max Velocity of Prior Week",
+    subtitle = paste("Mean % of Max Velocity, Injury: ", round(injury_week_prior_mean, 2), " |  Mean % of Max Velocity, Non-Injury: ", round(non_injury_week_prior_mean, 2)),
+    x = "Week",
+    y = "% of Max Velocity Reached"
+  ) +
+  theme_classic()
+
+
+ggplot(injury_week_prior, aes(x = week, y = lag1_pct_of_max_velocity)) +
+  geom_point(color = "red") +
+  labs(
+    title = "% of Max Velocity the week before injury",
+    subtitle = paste("% of Max Velocity Mean: ", round(injury_week_prior_mean, 2)),
+    x = "Week",
+    y = "% of Max Velocity"
+  ) +
+  theme_classic()
+
+# Bar chart for week prior to injury % Max
+ggplot(injury_week_prior, aes(x = factor(injury_event), y = lag1_pct_of_max_velocity)) +
+  geom_col(fill = "#CFB87C") +
+  geom_text(aes(label = round(pct_of_max_velocity, 1)),  # round to 1 decimal place
+            vjust = -0.5, size = 2.75) +
+  labs(
+    title = "% of Max Velocity the Week Before Injury",
+    subtitle = paste("% Max Mean: ", round(injury_week_prior_mean, 2)),
+    x = "Injury Event",
+    y = "% of Max Velocity"
+  ) +
+  theme_classic() + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r}
+# T-test to compare lag_pct_of_max_velocity (the week before) between injury and non injury
+t_test_week_prior <- t.test(
+  lag1_pct_of_max_velocity ~ injury, 
+  data = week_prior,
+  var.equal = FALSE # use TRUE if you assume equal variances
+)
+
+# Print results
+print(t_test_week_prior)
+```
+Again, we do not reject the null that the means of the two groups are different. 
+
+```{r}
+# Look into the last two weeks
+
+# Drop NAs
+lag_2_injury <- injury_week_prior %>%
+  drop_na(lag2_pct_of_max_velocity)
+lag_2_non_injury <- non_injury_week_prior %>%
+  drop_na(lag2_pct_of_max_velocity)
+
+# Calculate means
+mean_lag2_injury <- mean(lag_2_injury$lag2_pct_of_max_velocity)
+mean_lag2_non_injury <- mean(lag_2_non_injury$lag2_pct_of_max_velocity)
+mean_lag2_injury
+mean_lag2_non_injury
+
+
+# T-test to compare lag2_pct_of_max_velocity (the week before) between injury and non injury
+t_test_2week_prior <- t.test(
+  lag2_pct_of_max_velocity ~ injury, 
+  data = week_prior,
+  var.equal = FALSE # use TRUE if you assume equal variances
+)
+# Print results
+print(t_test_2week_prior)
+
+
+# T-test to compare lag3_pct_of_max_velocity between injury and non injury
+t_test_3week_prior <- t.test(
+  lag3_pct_of_max_velocity ~ injury, 
+  data = week_prior,
+  var.equal = FALSE # use TRUE if you assume equal variances
+)
+# Print results
+print(t_test_3week_prior)
+
+
+t_test_2week_change <- t.test(
+  change_last2weeks ~ injury, 
+  data = week_prior,
+  var.equal = FALSE # use TRUE if you assume equal variances
+)
+# Print results
+print(t_test_2week_change)
+
+
+
+t_test_2week_change <- t.test(
+  sum_last2weeks ~ injury, 
+  data = week_prior,
+  var.equal = FALSE # use TRUE if you assume equal variances
+)
+# Print results
+print(t_test_2week_change)
+
+
+t_test_3week_change <- t.test(
+  sum_last3weeks ~ injury, 
+  data = week_prior,
+  var.equal = FALSE # use TRUE if you assume equal variances
+)
+# Print results
+print(t_test_3week_change)
+```
+None of these showed significantly different means
+
+
 ```{r removing unnecessary objects for running imbalance analysis}
 #removing extra data
 remove(band_long, bigs, clean_anons, combo, cor_data, cor_matrix, daily_90_counts,
@@ -1500,6 +1852,7 @@ remove(all_athletes, all_weeks, band_levels, BIG, COMBO, SKILL, injured_ids,
        injury_week_nums, overall_avg, player_id, positions, Positions, qb_avg, team_avg,
        plot_hit_90_by_position)
 ```
+
 
 # Section 2: Running Imbalance
 
