@@ -40,7 +40,7 @@ Catapult_Session_clean <- Catapult_Session %>%
   #putting the date as a date class
   mutate(Date = as.Date(Date, "%m/%d/%Y")) %>%
   #only selecting important columns for this analysis
-  select(anon_id, Date, Age, Primary.Position, Total.Distance, Period.Name, Total.Duration..min., Velocity.Band.1.Total.Distance, Velocity.Band.2.Total.Distance, Velocity.Band.3.Total.Distance, Velocity.Band.4.Total.Distance, Velocity.Band.5.Total.Distance, Velocity.Band.6.Total.Distance, Velocity.Band.7.Total.Distance, Velocity.Band.8.Total.Distance, Velocity.Band.2.Total.Effort.Count, Velocity.Band.3.Total.Effort.Count, Velocity.Band.4.Total.Effort.Count, Velocity.Band.5.Total.Effort.Count, Velocity.Band.6.Total.Effort.Count, Velocity.Band.7.Total.Effort.Count, Velocity.Band.8.Total.Effort.Count, Maximum.Velocity, Average.Velocity, Hit.90.Percent.Max, Date.of.Last.90.Effort, Days.Since.Last.90.Effort, Hit.Max.Velocity., Date.of.All.Time.Max.Velocity, Days.Since.Max.Velocity) %>%
+  select(anon_id, Date, Age, Primary.Position, Total.Distance, Period.Name, Total.Duration..min., Velocity.Band.1.Total.Distance, Velocity.Band.2.Total.Distance, Velocity.Band.3.Total.Distance, Velocity.Band.4.Total.Distance, Velocity.Band.5.Total.Distance, Velocity.Band.6.Total.Distance, Velocity.Band.7.Total.Distance, Velocity.Band.8.Total.Distance, Velocity.Band.2.Total.Effort.Count, Velocity.Band.3.Total.Effort.Count, Velocity.Band.4.Total.Effort.Count, Velocity.Band.5.Total.Effort.Count, Velocity.Band.6.Total.Effort.Count, Velocity.Band.7.Total.Effort.Count, Velocity.Band.8.Total.Effort.Count, Maximum.Velocity, Average.Velocity, Hit.90.Percent.Max, Date.of.Last.90.Effort, Days.Since.Last.90.Effort, Hit.Max.Velocity., Date.of.All.Time.Max.Velocity, Days.Since.Max.Velocity, Session.Max.Velocity) %>%
   #calculating each player's maximum velocity
   group_by(anon_id) %>%
   mutate(Player.Max.Velocity = max(na.omit(Maximum.Velocity))) %>%
@@ -2138,6 +2138,80 @@ remove(all_athletes, all_weeks, band_levels, BIG, COMBO, SKILL, injured_ids,
        injury_week_nums, overall_avg, player_id, positions, Positions, qb_avg, team_avg,
        plot_hit_90_by_position)
 ```
+
+
+## Maximum Velocity Trends over Time
+```{r}
+catapult_ids <- unique(Catapult_Session_clean$anon_id)
+
+Catapult_Session_clean <- Catapult_Session_clean %>%
+  group_by(anon_id) %>%
+  mutate(week = floor_date(Date, unit="week")) %>%
+  ungroup() %>%
+  group_by(anon_id, week) %>%
+  mutate(Week.Max.Velocity = mean(na.omit(Session.Max.Velocity)))
+
+kendalls <- rep(NA, 104)
+negative_trend <- "0"
+
+for(i in 1:104){
+  
+  speeds <- unique(Catapult_Session_clean[Catapult_Session_clean$anon_id==catapult_ids[i],]$Week.Max.Velocity)
+  weeks <- rev(1:length(speeds))
+  
+  kend <- cor(weeks, speeds, method="kendall")
+  
+  if(length(speeds)>5){
+  kendalls[i] = kend
+  
+    if(kend <= -0.5){
+      negative_trend <- c(negative_trend, catapult_ids[i])
+    }
+  
+  p <- ggplot(filter(Catapult_Session_clean, anon_id == catapult_ids[i]), aes(week,
+                                                            Week.Max.Velocity)) +
+  geom_point(color=ifelse(kend <= -0.5, "red", "black")) +
+  geom_line(color=ifelse(kend <= -0.5, "red", "black")) +
+  labs(title = "Average Top Running Speed per Week", subtitle=kend) +
+  ylim(0,25)
+       
+       
+  print(p)
+  
+  
+  }
+  
+}
+```
+```{r}
+hist(kendalls)
+abline(v=-0.5)
+abline(v=0.5) 
+abline(v=median(na.omit(kendalls)))
+```
+Based on the Kendall Correlations calculated from the average maximum velocity per week for each player we can see that the distributions of correlations shows that most players tend to have a weak Kendall Correlation coefficient. This suggests that player may tend to see a decrease in maximum velocity per week throughout their time at CU. For most players with a negative coefficient though, it is considered really weak. The players with a strong negative correlation coefficient are ID 30, ID 178, ID 220, and ID 65. These are the ones that have almost a definitive negative trend in their maximum running speeds. These players are the only ones that we can say for certain have seen a decrease in their top running speed. 
+
+```{r}
+data_130 <- Catapult_Session_clean %>%
+  filter(anon_id == "ID_130")
+data_178 <- Catapult_Session_clean %>%
+  filter(anon_id == "ID_178")
+data_220 <- Catapult_Session_clean %>%
+  filter(anon_id == "ID_220")
+data_65 <- Catapult_Session_clean %>%
+  filter(anon_id == "ID_65")
+
+model_130 <- lm(Week.Max.Velocity ~ week, data=data_130)
+summary(model_130)
+model_178 <- lm(Week.Max.Velocity ~ week, data=data_178)
+summary(model_178)
+model_220 <- lm(Week.Max.Velocity ~ week, data=data_220)
+summary(model_220)
+model_65 <- lm(Week.Max.Velocity ~ week, data=data_65)
+summary(model_65)
+```
+Looking at the slope coefficients for players that had the lowest correlation coefficients we can see that all of them had a relatively small slope value. All of them being lower than 0.04 in absolute value. This suggests that while they had a detectable negative trend throughout their time at CU, none of them had any sharp decreases. 
+
 
 # Section 2: Running Imbalance
 
