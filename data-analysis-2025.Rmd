@@ -18,7 +18,7 @@ library(gt)
 library(boot)
 library(mgcv)
 library(lme4)
-library(leaps)
+# library(leaps)
 ```
 
 
@@ -1442,6 +1442,7 @@ pc_loadings <- prcomp(preds, scale=TRUE)$rotation[,c(1,2,3)]
 pc_loadings
 ```
 
+
 ## How does sprinting exposure (# of efforts, % max reached) relate to incidence of hamstring injuries?
 
 ```{r}
@@ -1465,7 +1466,10 @@ injuries_and_running <- injured_data %>%
 
 ```{r}
 # For demonstration: pick one player (or loop over them)
-player_id <- "ID_306"
+player_id <- "ID_307"
+
+injuries_and_running <- injuries_and_running %>%
+  mutate(relative_band = factor(relative_band, levels = band_levels))
 
 plot_data <- injuries_and_running %>%
   filter(anon_id == player_id)
@@ -1478,7 +1482,7 @@ ggplot(plot_data, aes(x = week)) +
   geom_rect(data = data.frame(week = injury_week_nums),
             aes(xmin = week - 3, xmax = week + 3, ymin = -Inf, ymax = Inf),
             fill = "blue", alpha = 0.2, inherit.aes = FALSE) +
-  geom_col(aes(y = pct_effort, fill = relative_band), position = "stack") +
+  geom_col(aes(y = pct_effort, fill = relative_band), position = position_stack(reverse = TRUE)) +
   geom_line(aes(y = pct_of_max_velocity, group = 1), color = "black", size = 1.2) +
   geom_point(aes(y = pct_of_max_velocity), color = "black", size = 2) +
   scale_fill_manual(
@@ -1528,7 +1532,7 @@ unique(injuries_and_running$anon_id) %>%
       geom_rect(data = data.frame(week = injury_week_nums),
                 aes(xmin = week - 3, xmax = week + 3, ymin = -Inf, ymax = Inf),
                 fill = "blue", alpha = 0.2, inherit.aes = FALSE) +
-      geom_col(aes(y = pct_effort, fill = relative_band), position = "stack") +
+      geom_col(aes(y = pct_effort, fill = relative_band), position = position_stack(reverse = TRUE)) +
       geom_line(aes(y = pct_of_max_velocity, group = 1), color = "black", size = 1.2) +
       geom_point(aes(y = pct_of_max_velocity), color = "black", size = 2) +
       scale_fill_manual(
@@ -1558,7 +1562,7 @@ unique(injuries_and_running$anon_id) %>%
     return(NULL)
   })
 ```
-Fix above code so that ID_95 last week isnt V2
+The blue lines indicate a week where an injury occurred.
 
 ```{r}
 model_injury <- glm(injury ~ pct_of_max_velocity,
@@ -1567,6 +1571,10 @@ model_injury <- glm(injury ~ pct_of_max_velocity,
 
 summary(model_injury)
 ```
+Simple model
+Each 1 percentage point increase in pct_of_max_velocity increases the log-odds of injury by 0.0106.
+Not significant.
+
 
 ```{r}
 # Get summary stats for both injury and non injury
@@ -1635,7 +1643,9 @@ t_test <- t.test(
 # Print results
 print(t_test)
 ```
-While the mean % of max velocity is higher for the injury group, the difference is small and not significant.
+Group 1 (injury) mean = 86.55
+Group 2 (non-injury) mean = 85.49
+While the mean % of max velocity is higher for the injury group, the difference is small and not statistcally significant. (high p-value, 0.6)
 
 
 ```{r}  
@@ -1681,19 +1691,35 @@ ggplot(injury_weeks, aes(x = factor(injury_event), y = pct_of_max_velocity)) +
 
 
 ```{r}
-# Looking into the week before injury
+# Looking into weeks before injury
 
-# Get % of max velocity for week prior
+# Calculate percent of max velocity from 1, 2, and 3 weeks prior as well as the sum of weeks 1 and 2 and the sum of weeks 1, 2, and 3 as well as the change between week one and week 2
 week_prior <- injuries_and_running_clean %>%
   group_by(anon_id) %>%
   arrange(week) %>%
   mutate(
+    # Previous weeks values of % of max velocity
     lag1_pct_of_max_velocity = lag(pct_of_max_velocity, 1),
     lag2_pct_of_max_velocity = lag(pct_of_max_velocity, 2),
     lag3_pct_of_max_velocity = lag(pct_of_max_velocity, 3),
-    change_last2weeks = lag1_pct_of_max_velocity - lag2_pct_of_max_velocity,
-    sum_last2weeks = lag1_pct_of_max_velocity + lag2_pct_of_max_velocity,
-    sum_last3weeks = lag1_pct_of_max_velocity + lag2_pct_of_max_velocity + lag3_pct_of_max_velocity
+    
+    # Change of % of max from current week to previous weeks
+    change_lastweek = pct_of_max_velocity - lag1_pct_of_max_velocity,
+    change_last2weeks = pct_of_max_velocity - lag2_pct_of_max_velocity,
+    change_last3weeks = pct_of_max_velocity - lag3_pct_of_max_velocity,
+    
+    # Sum % of max of current to previous weeks
+    sum_lastweek = pct_of_max_velocity + lag1_pct_of_max_velocity,
+    sum_last2weeks = pct_of_max_velocity + lag1_pct_of_max_velocity + lag2_pct_of_max_velocity,
+    sum_last3weeks = pct_of_max_velocity + lag1_pct_of_max_velocity + lag2_pct_of_max_velocity + lag3_pct_of_max_velocity,
+    
+    # Change between weeks (not current week)
+    change_weeks1_2 = lag1_pct_of_max_velocity - lag2_pct_of_max_velocity,
+    change_weeks1_3 = lag1_pct_of_max_velocity - lag3_pct_of_max_velocity,
+    
+    # Sum of weeks (not current week)
+    sum_weeks1_2 = lag1_pct_of_max_velocity + lag2_pct_of_max_velocity,
+    sum_weeks1_2_3 = lag1_pct_of_max_velocity + lag2_pct_of_max_velocity + lag3_pct_of_max_velocity
     ) %>%
   ungroup()
 
@@ -1759,13 +1785,50 @@ ggplot(injury_week_prior, aes(x = factor(injury_event), y = lag1_pct_of_max_velo
 t_test_week_prior <- t.test(
   lag1_pct_of_max_velocity ~ injury, 
   data = week_prior,
-  var.equal = FALSE # use TRUE if you assume equal variances
-)
-
-# Print results
+  var.equal = FALSE)
 print(t_test_week_prior)
+
+
+# T-test to compare change between current week and last week
+t_test_change_lastweek <- t.test(
+  change_lastweek ~ injury, 
+  data = week_prior,
+  var.equal = FALSE)
+print(t_test_change_lastweek)
+
+# T-test to compare change between current week and 2 weeks ago
+t_test_change_last2weeks <- t.test(
+  change_last2weeks ~ injury, 
+  data = week_prior,
+  var.equal = FALSE)
+print(t_test_change_last2weeks)
+
+# T-test to compare change between current week and 3 weeks ago
+t_test_change_last3weeks <- t.test(
+  change_last3weeks ~ injury, 
+  data = week_prior,
+  var.equal = FALSE)
+print(t_test_change_last3weeks)
+
+
+# T-test to compare sum of current week, 1, 2, and 3 weeks before
+t_test_sum_last3weeks <- t.test(
+  sum_last3weeks ~ injury, 
+  data = week_prior,
+  var.equal = FALSE)
+print(t_test_sum_last3weeks)
 ```
-Again, we do not reject the null that the means of the two groups are different. 
+Mean % of max week before: injury = 86.6, non-injury = 85.9.
+Not sig (pvalue = 0.79)
+
+Mean % change week before (current week % - last week %): injury = -0.057, non-injury = -0.49
+Not sig (p-value = 0.89)
+
+Mean % change of last 2 weeks (current - 2 weeks ago): injury = -2.68, non-injury = -0.65
+Not sig, p-value = 0.44
+
+Mean % change of last 3 weeks (current - 3 weeks ago): injury = -0.6, non-injury = -0.8.
+Not sig, p-value = 0.95
 
 ```{r}
 # Look into the last two weeks
@@ -1782,55 +1845,278 @@ mean_lag2_non_injury <- mean(lag_2_non_injury$lag2_pct_of_max_velocity)
 mean_lag2_injury
 mean_lag2_non_injury
 
-
-# T-test to compare lag2_pct_of_max_velocity (the week before) between injury and non injury
+# Two weeks before:
+# T-test to compare lag2_pct_of_max_velocity (2 weeks before) between injury and non injury
 t_test_2week_prior <- t.test(
   lag2_pct_of_max_velocity ~ injury, 
   data = week_prior,
-  var.equal = FALSE # use TRUE if you assume equal variances
-)
-# Print results
+  var.equal = FALSE)
 print(t_test_2week_prior)
 
+# Change of last two weeks (lag1 - lag2)
+t_test_change_weeks1_2 <- t.test(
+  change_weeks1_2 ~ injury, 
+  data = week_prior,
+  var.equal = FALSE)
+print(t_test_change_weeks1_2)
 
-# T-test to compare lag3_pct_of_max_velocity between injury and non injury
+# Sum of weeks 1 and 2
+t_test_sum_weeks1_2 <- t.test(
+  sum_weeks1_2 ~ injury, 
+  data = week_prior,
+  var.equal = FALSE)
+print(t_test_sum_weeks1_2)
+
+
+# 3 weeks before
+# T-test to compare lag3_pct_of_max_velocity (3 weeks before) between injury and non injury
 t_test_3week_prior <- t.test(
   lag3_pct_of_max_velocity ~ injury, 
   data = week_prior,
-  var.equal = FALSE # use TRUE if you assume equal variances
-)
-# Print results
+  var.equal = FALSE)
 print(t_test_3week_prior)
 
-
-t_test_2week_change <- t.test(
-  change_last2weeks ~ injury, 
+# Change between 1 weeks before and 3 weeks before
+t_test_change_weeks1_3 <- t.test(
+  change_weeks1_3 ~ injury, 
   data = week_prior,
-  var.equal = FALSE # use TRUE if you assume equal variances
-)
-# Print results
-print(t_test_2week_change)
+  var.equal = FALSE)
+print(t_test_change_weeks1_3)
 
-
-
-t_test_2week_change <- t.test(
-  sum_last2weeks ~ injury, 
+# Sum of 1, 2, and 3 weeks before injury
+t_test_sum_weeks1_2_3 <- t.test(
+  sum_weeks1_2_3 ~ injury, 
   data = week_prior,
-  var.equal = FALSE # use TRUE if you assume equal variances
-)
-# Print results
-print(t_test_2week_change)
-
-
-t_test_3week_change <- t.test(
-  sum_last3weeks ~ injury, 
-  data = week_prior,
-  var.equal = FALSE # use TRUE if you assume equal variances
-)
-# Print results
-print(t_test_3week_change)
+  var.equal = FALSE)
+print(t_test_sum_weeks1_2_3)
 ```
-None of these showed significantly different means
+2 weeks before injury:
+Means of % of max: injury = 88.7, non-injury = 85.8
+Not a significant difference in means, p-value, 0.1833 > 0.05.
+
+Means of change: injury = -2.34, non-injury = 0.108
+Not significant (p-value = 0.47)
+
+Mean of sum of weeks 1 and 2: injury = 175.14, non-injury = 171.72
+Not significant, p-value = 0.333
+
+
+3 weeks before injury:
+Means of % of max: injury = 86.7, non-injury = 85.9
+Not a significant difference in means, high p-value, 0.7
+
+Mean sum of 1, 2, and 3 weeks before injury: injury = 261.8, non-injury = 257.3
+Not sig, p-value = 0.36
+
+Mean change between 1 and 3 weeks before: injury = -0.26, non-injury = -0.27
+Not sig, p-val = 0.99
+
+```{r}
+model <- glm(injury ~ change_lastweek + change_last2weeks,
+             data = week_prior, family = "binomial")
+summary(model)
+```
+There is no clear evidence that % of max velocity in the current or prior weeks (or their changes/sums) differs between injury and non-injury weeks, based on t-tests of mean differences.
+
+##### Comparing the number of >90% efforts with injury
+
+```{r}
+# Convert 90 percent max to logical
+# Instead of Yes/No it is True/False
+catapult_weekly <- Catapult_Session_clean %>%
+  mutate(
+    Date = as.Date(Date),
+    week = floor_date(Date, unit = "week"),
+    Hit90 = Hit.90.Percent.Max == "Yes"  # Convert to logical
+  )
+
+
+# Get all combinations of player and week
+all_combinations <- catapult_weekly %>%
+  distinct(anon_id, week)
+
+# Count weekly >90% sprint hits
+weekly_hits <- catapult_weekly %>%
+  group_by(anon_id, week) %>%
+  summarise(
+    count_90pct = sum(Hit90, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# Join with all combinations to include zero counts
+weekly_90pct <- all_combinations %>%
+  left_join(weekly_hits, by = c("anon_id", "week")) %>%
+  mutate(count_90pct = replace_na(count_90pct, 0))
+```
+
+```{r}
+# Create injury weeks
+injury_weeks <- Incident_Report_clean %>%
+  mutate(
+    week = floor_date(as.Date(Date.of.Injury), unit = "week")
+  ) %>%
+  filter(Date.of.Injury >= as.Date("2024-06-30") & Date.of.Injury <= as.Date("2025-07-01")) %>%
+  select(anon_id, week) %>%
+  distinct() %>%
+  mutate(injury = 1)
+
+# Merge with injury data to have column that indicates injury week
+weekly_90pct_injuries <- weekly_90pct %>%
+  left_join(injury_weeks, by = c("anon_id", "week")) %>%
+  mutate(injury = replace_na(injury, 0))
+
+# Calculate lagged >90% effort counts
+weekly_90pct_injuries <- weekly_90pct_injuries %>%
+  arrange(anon_id, week) %>%
+  group_by(anon_id) %>%
+  mutate(
+    lag1_90pct_count = lag(count_90pct, 1),
+    lag2_90pct_count = lag(count_90pct, 2),
+    lag3_90pct_count = lag(count_90pct, 3),
+    
+    change_lastweek = count_90pct - lag1_90pct_count,
+    change_last2weeks = count_90pct - lag2_90pct_count,
+    change_last3weeks = count_90pct - lag3_90pct_count,
+    
+    sum_last2weeks = count_90pct + lag1_90pct_count,
+    sum_last3weeks = count_90pct + lag1_90pct_count + lag2_90pct_count
+  ) %>%
+  ungroup()
+```
+
+```{r}
+# T-tests:
+
+# Current week
+t.test(count_90pct ~ injury, data = weekly_90pct_injuries, var.equal = FALSE)
+
+# Week before
+t.test(lag1_90pct_count ~ injury, data = weekly_90pct_injuries, var.equal = FALSE)
+
+# Change last week to this week
+t.test(change_lastweek ~ injury, data = weekly_90pct_injuries, var.equal = FALSE)
+
+# Change last two weeks
+t.test(change_last2weeks ~ injury, data = weekly_90pct_injuries, var.equal = FALSE)
+
+# Sum over last 2 weeks
+t.test(sum_last2weeks ~ injury, data = weekly_90pct_injuries, var.equal = FALSE)
+
+
+```
+
+```{r}
+weekly_90pct_injuries <- weekly_90pct_injuries %>%
+  mutate(
+    sprint_exposure_bin = ifelse(count_90pct > 0, "Some", "None")
+  )
+
+table_exposure <- table(weekly_90pct_injuries$sprint_exposure_bin, weekly_90pct_injuries$injury)
+
+# Fisher's Exact Test
+fisher.test(table_exposure)
+```
+```{r}
+# Create top quartile exposure
+cutoff <- quantile(weekly_90pct_injuries$count_90pct, 0.75, na.rm = TRUE)
+
+weekly_90pct_injuries <- weekly_90pct_injuries %>%
+  mutate(
+    sprint_exposure_group = ifelse(count_90pct >= cutoff, "High", "Low")
+  )
+
+table_quartile <- table(weekly_90pct_injuries$sprint_exposure_group, weekly_90pct_injuries$injury)
+
+fisher.test(table_quartile)
+```
+
+
+```{r}
+glm(injury ~ count_90pct, data = weekly_90pct_injuries, family = "binomial")
+
+glm(injury ~ lag1_90pct_count, data = weekly_90pct_injuries, family = "binomial")
+
+change <- glm(injury ~ change_lastweek, data = weekly_90pct_injuries, family = "binomial")
+summary(change)
+glm(injury ~ change_last2weeks, data = weekly_90pct_injuries, family = "binomial")
+
+
+sum <- glm(injury ~ sum_last3weeks, data = weekly_90pct_injuries, family = "binomial")
+summary(sum)
+```
+
+```{r}
+multi_model <- glm(
+  injury ~ count_90pct + sum_last2weeks,
+  data = weekly_90pct_injuries,
+  family = "binomial"
+)
+
+summary(multi_model)
+```
+
+
+```{r}
+ggplot(weekly_90pct_injuries, aes(x = change_lastweek, y = injury)) +
+  geom_jitter(height = 0.05, alpha = 0.3, color = "blue") +  # Jitter to spread points vertically
+  geom_smooth(method = "glm", method.args = list(family = "binomial"), se = TRUE, color = "red") +  # Logistic regression curve
+  labs(
+    title = "Probability of Injury vs Change in >90% Sprint Counts (Last Week)",
+    x = "Change in >90% Sprint Counts (Current Week - Previous Week)",
+    y = "Injury (0 = No, 1 = Yes)"
+  ) +
+  theme_minimal()
+```
+
+No t-tests or models revealed any insights. 
+
+Separate sprint counts into groups
+
+
+```{r}
+# Create groups for number of sprint counts
+
+summary(weekly_90pct_injuries$count_90pct)
+
+weekly_90pct_injuries <- weekly_90pct_injuries %>%
+  mutate(
+    sprint_group = case_when(
+      count_90pct == 0          ~ "Low",
+      count_90pct >= 1 & count_90pct <= 7  ~ "Moderate",
+      count_90pct >= 8          ~ "High",
+      TRUE                      ~ NA_character_
+    )
+  )
+
+# check counts
+table(weekly_90pct_injuries$sprint_group, useNA = "ifany")
+```
+
+```{r}
+group_model <- glm(
+  injury ~ sprint_group,
+  data = weekly_90pct_injuries,
+  family = "binomial"
+)
+
+summary(group_model)
+```
+
+```{r}
+weekly_90pct_injuries %>%
+  group_by(sprint_group) %>%
+  summarise(
+    injury_rate = mean(injury, na.rm = TRUE),
+    n = n()
+  ) %>%
+  ggplot(aes(x = sprint_group, y = injury_rate, fill = sprint_group)) +
+  geom_col() +
+  geom_text(aes(label = scales::percent(injury_rate, accuracy = 0.1)), vjust = -0.5) +
+  labs(title = "Injury Rate by Sprint Group",
+       x = "Sprint Group",
+       y = "Injury Rate") +
+  theme_minimal()
+```
 
 
 ```{r removing unnecessary objects for running imbalance analysis}
