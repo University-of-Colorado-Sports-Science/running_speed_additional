@@ -2133,7 +2133,7 @@ ggplot(data = mean_player_variances, aes(diff_in_var)) +
   geom_histogram() +
   geom_vline(xintercept = quantile(mean_player_variances$diff_in_var, 0.05), color= "#CFB87C") +
   geom_vline(xintercept = quantile(mean_player_variances$diff_in_var, 0.95), color= "#CFB87C") +
-  labs(x="Difference in Variance")
+  labs(x="Difference in Average Variance")
 
 ggplot(data=mean_player_variances) +
   geom_histogram(aes(injured_var), alpha = 0.75, fill ="#CFB87C") +
