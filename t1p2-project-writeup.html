@@ -406,20 +406,117 @@ algorithm. This bootstrap revealed that with 90% confidence, players who
 had a hamstring injury had a greater average variance than their
 uninjured counterparts between 0.7859 and 1.3262. This, like the last
 bootstrap supports the idea that players who sustained a hamstring
-injury have on average higher variance in their running imbalance.</p>
+injury have on average higher variance in their running imbalance than
+those who did not sustain a hamstring injury.</p>
 <p>To understand whether or not preference for one side has a
 relationship with HSI risk, the third bootstrap looked at the average
 absolute value for each group. This bootstrap revealed that with 90%
 confidence the true difference in average absolute value between the
 groups is between 0.0535% and 0.3255%. While the difference between the
-two groups is statistically significant at the <span class="math inline">\(\alpha=0.1\)</span> significance level, the values
-are so small that in practice, using these values to try and
+two groups is statistically significant at the <span class="math inline">\(\alpha\)</span> = 0.1 significance level, the
+values are so small that in practice, using these values to try and
 differentiate the groups would be difficult considering that running
 imbalance ranges from 0% to 100%.</p>
+<p>This analysis also looked at the relationship that running imbalance
+had with the categories of positions. This analysis first looked at the
+average variance in running imbalance across all three categories (Bigs,
+Skills, and Combos) using the same bootstrapping algorithm from before.
+This bootstrap revealed that there was no statistically significant
+separation between any of the three groupings. This suggests that
+despite different physical demands for each position, they do not tend
+to vary differently from each other.</p>
+<p>This analysis also wanted to see if there was a significant
+difference in the average absolute value running imbalance across the
+different categories. Using the same bootstrapping algorithm as before
+and comparing the estimated average absolute value in running imbalance
+for all of the categories we can see that Bigs and Combos have nearly
+identical estimations of the average absolute running imbalance. But,
+Skills actually have a significantly higher average absolute value
+running imbalance by about 0.2%. Again, while this is statistically
+significant, it’s important to note that running imbalance ranges from
+0% to 100% so a difference in running imbalance of 0.2% will be hard to
+detect in practice. This may also be just due to the different physical
+demands put onto Skills that are not put onto Bigs or Combos.</p>
 <p><strong>What is a meaningful change? What red flags should go off
 when we see a week-to-week change in running imbalance?</strong></p>
+<p>In order to see what would be a meaningful change in running
+imbalance, this analysis focused on what trends players had leading up
+to and directly following a hamstring injury. When looking at running
+imbalance values of players before and after an injury, there wasn’t any
+sort of discernible trend that was applicable to most of the players.
+Instead what was found was that before and after a hamstring injury,
+running imbalance trends looked the same.</p>
+<p>In order to further see if there is a relationship between running
+imbalance and HSI risk week-to-week, this analysis looked at the average
+running imbalance value per week leading up to and after a hamstring
+injury. This too revealed that there was no discernible pattern in
+average running imbalance value week-to-week and instances of hamstring
+injuries.</p>
+<p>Finally, the same analysis was done but instead of using average
+running imbalance per week, the summary statistic used was variance in
+running imbalance per week. Like before, there was no pattern in the
+trends that could have been used to safely relate variance in running
+imbalance to HSI incidents. There was a somewhat common pattern of there
+being a jump in variance in the first week with data after a hamstring
+injury but this may be due to the fact that there is not as much data in
+that week and the jump in variance is due to that lack of data and how
+variance is calculated.</p>
+<p>We also wanted to see if there were detectable trends in running
+imbalance for athletes who sustained a hamstring injury. To see if there
+was, the Kendall rank correlation coefficient was calculated for all
+athletes with running imbalance data. These Kendall rank correlation
+coefficients were then put into a data set that was split into two
+groups, athletes who were injured and those who were not. These two data
+sets were then resampled 5000 times and the average absolute value
+Kendall rank correlation coefficient for the sample was calculated. This
+bootstrap revealed that there was not a statistically significant
+difference in Kendall rank correlation coefficient values for athletes
+who were injured and those who were not. In fact, the distributions for
+the average Kendall rank correlation coefficient values were almost
+identical. This implies that simply looking at trends in the data will
+not be indicative of whether or not a player will sustain a hamstring
+injury or not.</p>
+<p>The absolute value was taken to eliminate the effect of the negative
+and positive Kendall rank correlation values from canceling each other
+out. Since a negative Kendall rank correlation values indicate a trend
+to prefer the left side more and a positive value indicates a growing
+preference for the right, using the absolute value of a trend will just
+indicate a growing preference toward one side.</p>
 <p><strong>Is running imbalance sensitive enough of a metric to use as a
 prognosis tool versus a rehab tool?</strong></p>
+<p>To address whether or not running imbalance alone is a sensitive
+enough to use as a prognosis tool compared to other rehab tools, this
+analysis tried to look at recovery times and relate them to patterns in
+running imbalance. Knowing that variance in running imbalance is
+strongly associated with HSI risk, this analysis tried to see if
+variance in running imbalance was associated with a recovery time
+greater than what was predicted using a prognosis tool.</p>
+<p>This analysis used the variance in running imbalance from the date of
+the injury to the end of the prognosis time frame given. A model was
+then constructed using solely the variance in running imbalance to
+predict whether the player returned within the predicted time frame or
+not. This model showed that the slope coefficient associated with
+variance in running imbalance was statistically significant at the <span class="math inline">\(\alpha\)</span> = 0.01 significance level and had
+a value of -0.04135 suggesting that a lower variance in running
+imbalance throughout the recovery period was associated with a higher
+chance of recovering within the predicted time frame. When assessing the
+model though, the cross validated classification error rate was 0.4.
+This suggests that while there is a detectable difference in running
+imbalance variance for players who recovered in the predicted time frame
+and those who did not, variance in running imbalance isn’t sensitive
+enough of a metric to be used as a prognosis tool.</p>
+<p>To see what the relationship between variance in running imbalance
+and returning to play in the predicted time frame or not, another
+bootstrap was performed. The data was split up into those who recovered
+in time and those who did not. Those two data sets were then resampled
+5000 times and the average player variance in running imbalance was
+calculated from each sample. This revealed that the players who returned
+to play within the predicted time frame had a lower average predicted
+variance in running imbalance by about 1.2 than those who did not return
+with in the predicted time frame. So while variance in running imbalance
+is not a strong predictor for whether an athlete will return to play on
+time on its own, it may be used to supplement prognosis estimates made
+using rehab tools.</p>
 </div>
 </div>
 <div id="code-implementation" class="section level3">
@@ -446,12 +543,53 @@ categorized through bands. The Historical Running data set only
 contained the anonymous ID, Date, and Running Imbalance value. So the
 only cleaning on this data set was to filter out rows with missing data.
 The Incident Report data set was filtered down to only look at Hamstring
-injuries(rows where column “OSICS14.Code” = “TM1”). All of the data sets
+injuries(rows where column OSICS14.Code = “TM1”). All of the data sets
 were also filtered down to only include data from January 1, 2024 and
 on.</p>
 </div>
 <div id="final-results" class="section level3">
 <h3>Final Results</h3>
+<div id="section-1-running-speeds-1" class="section level4">
+<h4>Section 1: Running Speeds</h4>
+<p><strong>How often are athletes reaching ≥ 90% maximum velocity
+throughout a training season?</strong></p>
+<p><strong>Should we consider the number of sprinting efforts that
+athletes are completing?</strong></p>
+<p><strong>Are relative efforts and bands more advantageous than the
+absolute bands provided?</strong></p>
+<p><strong>How does sprinting exposure (# of efforts, % max reached)
+relate to incidence of hamstring injuries?</strong></p>
+</div>
+<div id="section-2-running-imbalance-1" class="section level4">
+<h4>Section 2: Running Imbalance</h4>
+<p><strong>What is the variation at the team level and at each
+individual athlete level?</strong></p>
+<p>Each player tends to have a very unique variation in running
+imbalance. The team throughout time does not seem to have any larger
+spikes than normal in running imbalance suggesting that at no point in
+time did the team have a large shift in running imbalance all together.
+Through the use of three different bootstrap algorithms, we found that
+player who sustained a hamstring injury have a statistically
+significantly higher average variance in running imbalance and average
+absolute value running imbalance than players who did not sustain a
+hamstring injury. The average absolute value in running imbalance was a
+different very small though and it would be hard to differentiate the
+groups in practice only using the one estimated difference. The
+different categories of positions tended to have the same average
+variance when estimated using a bootstrap method. Using the same
+bootstrapping method as before but estimating the average absolute value
+of running imbalance for each of the three categories revealed the Bigs
+and Combos had nearly identical estimates of the average running
+imbalance value of around 2.75%. But Skills had a statistically
+significant higher average absolute value running imbalance of around
+3.15%. This may be due to the differing physical demands put onto the
+different categories of positions where Skills may be more inclined to
+favor one leg over another to accomplish their goal.</p>
+<p><strong>What is a meaningful change? What red flags should go off
+when we see a week-to-week change in running imbalance?</strong></p>
+<p><strong>Is running imbalance sensitive enough of a metric to use as a
+prognosis tool versus a rehab tool?</strong></p>
+</div>
 </div>
 </div>
 </div>

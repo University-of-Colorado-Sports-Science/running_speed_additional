@@ -2288,6 +2288,8 @@ ggplot(Historical_Running_clean, aes(Running.Imbalance)) +
   geom_histogram() +
   labs(title = "Team Running Imbalance Since January 1, 2024", x="Running Imbalance")
 ```
+
+
 ### Injured Analysis
 ```{r Looking at distributions for injured and uninjured separately}
 #making histogram for running imbalance of all injured athletes
@@ -2361,7 +2363,7 @@ group_variances <- data.frame(injured_var = rep(NA,5000),
                 uninjured_var = rep(NA,5000),
                 diff_in_var = rep(NA, 5000))
 
-#bootstrap for variances, 1000 iterations
+#bootstrap for variance, 5000 iterations
 for(i in 1:5000){
   #random seed
   set.seed(i) 
@@ -2512,8 +2514,7 @@ Historical_Running_clean <- left_join(Historical_Running_clean, info, by="anon_i
 
 ```{r Looking at Running Imbalance }
 for(i in 1:3){
-  p <- ggplot(data=Historical_Running_clean[Historical_Running_clean$Position==Positions[i],],
-              aes(Running.Imbalance)) +
+  p <- ggplot(data=Historical_Running_clean[Historical_Running_clean$Position==Positions[i],],aes(Running.Imbalance)) +
     geom_histogram() +
     labs(subtitle=Positions[i])
   
@@ -2686,8 +2687,8 @@ ggplot(Position_counts, aes(Position)) +
 ```{r Removing unnecessary objects from environment}
 remove(big_sample, BIGS, catapult_info, combo_sample, COMBOS, confints, group_avg_variance,
        incident_info, info, p, Player_Summary_Stats, skill_sample, SKILLS, BIG, COMBO, i,
-       Positions, SKILL, dist_confints, group_avg_variance, group_avg_dist, group_distance, group_variances,
-       injured_data, injured_sample, Injury_Incidents, mean_player_variances, 
+       Positions, SKILL, dist_confints, group_avg_variance, group_avg_dist, group_distance, 
+       group_variances, injured_data, injured_sample, Injury_Incidents, mean_player_variances, 
        Position_counts, var_confints)
 ```
 
@@ -2833,9 +2834,9 @@ remove(Injured_Historical_Running)
 ```{r}
 for(i in 1:22){
   p <- ggplot(data=Historical_Running_clean[Historical_Running_clean$anon_id==injured_IDs[i],], aes(Date, Running.Imbalance)) +
-    geom_line() +
+    geom_line(linetype=1) +
     geom_point(aes(color=Weeks.After.Injury)) +
-    geom_vline(xintercept = Incident_Report_clean[Incident_Report_clean$anon_id==injured_IDs[i],]$Date.of.Injury) +
+    geom_vline(xintercept = Incident_Report_clean[Incident_Report_clean$anon_id==injured_IDs[i],]$Date.of.Injury, linetype=2) +
     scale_color_manual(values = c("-4"="green", "-3"="yellow", "-2"="orange", "-1"="red", "0"="black","1"= "purple", "2"="navy", "3"="blue", "4"="skyblue")) +
     theme_minimal() +
     labs(title="Running Imbalance", subtitle = injured_IDs[i])
@@ -2986,10 +2987,45 @@ ggplot(trends[trends$KC>0 & trends$injured==1,], aes(KC)) +
 ggplot(trends[trends$KC>0 & trends$injured==0,], aes(KC)) +
   geom_histogram()
 ```
+```{r}
+injured_trends <- trends %>%
+  filter(injured==1)
+
+uninjured_trends <- trends %>%
+  filter(injured==0)
+
+
+kendall_cors <- data.frame(injured_avg_KC = rep(NA,5000),
+                           uninjured_avg_KC = rep(NA,5000),
+                           avg_diff_KC = rep(NA,5000))
+
+for(i in 1:5000){
+  set.seed(i)
+  injured_samp <- sample_n(injured_trends, size=22, replace=TRUE)
+  uninjured_samp <- sample_n(uninjured_trends, size=49, replace=TRUE)
+  
+  kendall_cors[i,1] <- mean(abs(injured_samp$KC))
+  kendall_cors[i,2] <- mean(abs(uninjured_samp$KC))
+  kendall_cors[i,3] <- kendall_cors[i,1] - kendall_cors[i,2]
+}
+
+```
+
+
+```{r}
+ggplot(data=kendall_cors, aes(avg_diff_KC)) +
+  geom_histogram() +
+  geom_vline(xintercept = quantile(kendall_cors$avg_diff_KC, 0.05)) +
+  geom_vline(xintercept = quantile(kendall_cors$avg_diff_KC, 0.95))
+
+ggplot(data=kendall_cors) +
+  geom_histogram(aes(injured_avg_KC), alpha=0.3, fill="red") +
+  geom_histogram(aes(uninjured_avg_KC), alpha=0.3)
+```
 
 
 ```{r removing unnecessary objects from section}
-remove(i, p, df, Kendall_Cor)
+remove(i, p, df, Kendall_Cor, kendall_cors, trends)
 ```
 
 
