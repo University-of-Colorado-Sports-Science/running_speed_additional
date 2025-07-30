@@ -368,6 +368,48 @@ Team</h2>
 <h4>Section 1: Running Speeds</h4>
 <p><strong>How often are athletes reaching ≥ 90% maximum velocity
 throughout a training season?</strong></p>
+<p>To answer this question, we started by creating a bar chart that
+displayed the count of reaching ≥ 90% maximum velocity for each player
+for the training season. We defined the training season as
+6/30/2024-7/1/2025. Exploring this, we found that the average times
+reaching ≥ 90% maximum velocity throughout a training season for the
+whole team was 11.8. We also noticed that the bar chart for the whole
+team had a wide range of counts for reaching ≥ 90% maximum velocity
+throughout a training season. This led us to explore bar charts on the
+position level. We found that DBs had the highest average times reaching
+≥ 90% maximum velocity with 18.4 and the OL had the lowest with 6.8. o
+further investigate these differences, we grouped positions into broader
+categories and examined their distributions. Specifically, we created
+bar charts and computed averages for three main position groups:</p>
+<ul>
+<li>Skill (DBs, WRs),</li>
+<li>Bigs (OL, DL), and</li>
+<li>Combo (LBs, QBs, TEs, RBs). To no surprise, the skill group was the
+had the highest average (17.1), followed by the combo group (9.3) while
+the bigs had the lowest (8.9).</li>
+</ul>
+<p>To better understand when players were most frequently reaching ≥ 90%
+of their maximum velocity, we created a daily summary of high-intensity
+efforts. We ensured that each player’s effort was only counted once per
+day and then counted how many players reached this threshold on each
+day. We visualized the results using a line chart that displays the
+daily count of players who reached ≥ 90% maximum velocity. A dashed
+loess smoothing line was added to highlight general trends over time.
+This plot allows us to see patterns in high-speed efforts across the
+training season—such as whether they were clustered around specific
+weeks or varied steadily throughout the year.</p>
+<p>The daily plot revealed substantial variability from one day to the
+next, making it difficult to identify clear trends across the training
+season. To reduce this noise and better observe broader patterns, we
+aggregated the data by week and re-analyzed the frequency of players
+reaching ≥ 90% of their maximum velocity on a weekly basis. This data
+was far less noisy and allowed us to analyze the plots to determine that
+it is more common to reach ≥ 90% of their maximum velocity during the
+pre and post seasons than during the actual season where games occur. On
+average, players reached ≥ 90% of their maximum velocity just over 31
+times per week. This does not indicate that 31 individual players hit
+this threshold each week, as some players may have reached it multiple
+times within the same week.</p>
 <p><strong>Should we consider the number of sprinting efforts that
 athletes are completing?</strong></p>
 <p><strong>Are relative efforts and bands more advantageous than the
@@ -461,21 +503,21 @@ being a jump in variance in the first week with data after a hamstring
 injury but this may be due to the fact that there is not as much data in
 that week and the jump in variance is due to that lack of data and how
 variance is calculated.</p>
-<p>We also wanted to see if there were detectable trends in running
-imbalance for athletes who sustained a hamstring injury. To see if there
-was, the Kendall rank correlation coefficient was calculated for all
-athletes with running imbalance data. These Kendall rank correlation
-coefficients were then put into a data set that was split into two
-groups, athletes who were injured and those who were not. These two data
-sets were then resampled 5000 times and the average absolute value
-Kendall rank correlation coefficient for the sample was calculated. This
-bootstrap revealed that there was not a statistically significant
-difference in Kendall rank correlation coefficient values for athletes
-who were injured and those who were not. In fact, the distributions for
-the average Kendall rank correlation coefficient values were almost
-identical. This implies that simply looking at trends in the data will
-not be indicative of whether or not a player will sustain a hamstring
-injury or not.</p>
+<p>We also wanted to see if there were significant detectable trends in
+running imbalance for athletes who sustained a hamstring injury. To see
+if there was, the Kendall rank correlation coefficient was calculated
+for all athletes with running imbalance data. These Kendall rank
+correlation coefficients were then put into a data set that was split
+into two groups, athletes who were injured and those who were not. These
+two data sets were then resampled 5000 times and the average absolute
+value Kendall rank correlation coefficient for the sample was
+calculated. This bootstrap revealed that there was not a statistically
+significant difference in Kendall rank correlation coefficient values
+for athletes who were injured and those who were not. In fact, the
+distributions for the average Kendall rank correlation coefficient
+values were almost identical. This implies that simply looking at trends
+in the data will not be indicative of whether or not a player will
+sustain a hamstring injury or not.</p>
 <p>The absolute value was taken to eliminate the effect of the negative
 and positive Kendall rank correlation values from canceling each other
 out. Since a negative Kendall rank correlation values indicate a trend
@@ -543,7 +585,7 @@ categorized through bands. The Historical Running data set only
 contained the anonymous ID, Date, and Running Imbalance value. So the
 only cleaning on this data set was to filter out rows with missing data.
 The Incident Report data set was filtered down to only look at Hamstring
-injuries(rows where column OSICS14.Code = “TM1”). All of the data sets
+injuries(rows where column “OSICS14.Code” = “TM1”). All of the data sets
 were also filtered down to only include data from January 1, 2024 and
 on.</p>
 </div>
@@ -567,15 +609,16 @@ individual athlete level?</strong></p>
 <p>Each player tends to have a very unique variation in running
 imbalance. The team throughout time does not seem to have any larger
 spikes than normal in running imbalance suggesting that at no point in
-time did the team have a large shift in running imbalance all together.
-Through the use of three different bootstrap algorithms, we found that
-player who sustained a hamstring injury have a statistically
+time did the team have a large shift in running imbalance all
+together.</p>
+<p>Through the use of three different bootstrap algorithms, we found
+that player who sustained a hamstring injury have a statistically
 significantly higher average variance in running imbalance and average
 absolute value running imbalance than players who did not sustain a
 hamstring injury. The average absolute value in running imbalance was a
 different very small though and it would be hard to differentiate the
-groups in practice only using the one estimated difference. The
-different categories of positions tended to have the same average
+groups in practice only using the one estimated difference.</p>
+<p>The different categories of positions tended to have the same average
 variance when estimated using a bootstrap method. Using the same
 bootstrapping method as before but estimating the average absolute value
 of running imbalance for each of the three categories revealed the Bigs
@@ -587,9 +630,33 @@ different categories of positions where Skills may be more inclined to
 favor one leg over another to accomplish their goal.</p>
 <p><strong>What is a meaningful change? What red flags should go off
 when we see a week-to-week change in running imbalance?</strong></p>
+<p>There were no discernible trends in running imbalance that were
+clearly indicative of an impending HSI. Instead, for players that
+sustained a hamstring injury since January 1, 2024, their trends in
+running imbalance looked almost identical before and after their injury.
+This supports the idea that instances of HSI aren’t necessarily due to
+changes in running technique or side preference but instead risk is
+associated with someone’s innate running technique. Said in other words,
+short term changes in running imbalance do not seem related to hamstring
+injuries. Instead, looking at a player’s variance across their career
+tends to be more indicative of whether or not they would sustain a
+hamstring injury.</p>
+<p>Along this same vein, players who sustained a hamstring injury and
+those who did not did not have a statically significant difference in
+Kendall rank correlation coefficients. Put simply, this means that
+players who sustained a hamstring injury did not have a more detectable
+monotonic trend (positive or negative) than their uninjured
+counterparts. This means that simply looking at running imbalance trends
+were not indicative of whether or not a player would sustain an injury.
+This supports the idea from before where the actual values of running
+imbalance are not strongly associated with injury risk, it’s the
+variability in running imbalance that is stronger associated.</p>
 <p><strong>Is running imbalance sensitive enough of a metric to use as a
 prognosis tool versus a rehab tool?</strong></p>
 </div>
+</div>
+<div id="final-results-1" class="section level3">
+<h3>Final Results</h3>
 </div>
 </div>
 </div>
