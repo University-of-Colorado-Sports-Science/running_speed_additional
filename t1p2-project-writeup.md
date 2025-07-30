@@ -111,84 +111,15 @@ incidence of hamstring injuries?**
   To see what the relationship between variance in running imbalance and returning to play in the predicted time frame or not, another bootstrap was performed. The data was split up into those who recovered in time and those who did not. Those two data sets were then resampled 5000 times and the average player variance in running imbalance was calculated from each sample. This revealed that the players who returned to play within the predicted time frame had a lower average predicted variance in running imbalance by about 1.2 than those who did not return with in the predicted time frame. So while variance in running imbalance is not a strong predictor for whether an athlete will return to play on time on its own, it may be used to supplement prognosis estimates made using rehab tools. 
 
 
-**What is the variation at the team level and at each individual athlete
-level?**
-
-To understand the relationship that running imbalance has with time for
-the team as a whole, the average of the team's absolute value running
-imbalance were looked at over time. Since January 1, 2024, in general
-there were no large spikes in average absolute running imbalance for the
-team. Dates in which there is a noticeable spike are dates in which only
-1 player recorded a running imbalance measurement and was therefore not
-indicative of the team as a whole. With this, all players in this
-analysis will be treated independently from one another.
-
-Looking ahead to see the relationship between running imbalance and HSI
-risk, the Running Imbalance data set was broken up into players who did
-and did not sustain a hamstring injury since January 1, 2024. From
-there, three different bootstraps were performed to understand the
-differences in running imbalance between the two groups.
-
-The first bootstrap was used to compare the the variance in running
-imbalance between the two groups, assuming that players are independent
-of one another. This bootstrap revealed that the group of players who
-sustained a hamstring injury have a greater variance in running
-imbalance than the group that did not sustain an injury with 90%
-confidence by 0.2310 to 3.4866.
-
-Along this same thread, another bootstrap was constructed which
-calculated each player's variance from January 1, 2024 to the present.
-This means that each player had their own variance measurement and the
-variance wasn't calculated from the pooled bootstrap resampling
-algorithm. This bootstrap revealed that with 90% confidence, players who
-had a hamstring injury had a greater average variance than their
-uninjured counterparts between 0.7859 and 1.3262. This, like the last
-bootstrap supports the idea that players who sustained a hamstring
-injury have on average higher variance in their running imbalance.
-
-To understand whether or not preference for one side has a relationship
-with HSI risk, the third bootstrap looked at the average absolute value
-for each group. This bootstrap revealed that with 90% confidence the
-true difference in average absolute value between the groups is between
-0.0535% and 0.3255%. While the difference between the two groups is
-statistically significant at the $\alpha=0.1$ significance level, the
-values are so small that in practice, using these values to try and
-differentiate the groups would be difficult considering that running
-imbalance ranges from 0% to 100%.
-
-**What is a meaningful change? What red flags should go off when we see
-a week-to-week change in running imbalance?**
-
-**Is running imbalance sensitive enough of a metric to use as a
-prognosis tool versus a rehab tool?**
-
 ### Code Implementation
 
-The code for this project was designed to run sequentially. There are
-chunks throughout the analysis, usually at the end of each question,
-that remove objects from your environment that were created in the
-preceding analysis that are no longer needed. These were put in to
-increase efficiency and make it clear which objects were used for which
-analysis. This analysis also includes tools from the *gt*, *aod*,
-*lme4*, *boot*, *mgcv*, and *leaps* libraries and for someone cloning
-this repository, may require them to install the appropriate packages to
-access these libraries.
+  The code for this project was designed to run sequentially. There are chunks throughout the analysis, usually at the end of each question, that remove objects from your environment that were created in the preceding analysis that are no longer needed. These were put in to increase efficiency and make it clear which objects were used for which analysis. This analysis also includes tools from the *gt*, *aod*, *lme4*, *boot*, *mgcv*, and *leaps* libraries and for someone cloning this repository, may require them to install the appropriate packages to access these libraries.
 
-The first section is made up of the code that reads in and cleans the
-three data sets that will be used for the analysis. The Catapult data
-set will be used to look at running speeds, the Historical Running data
-set will be used for running imbalance and the Incident Report data will
-be used to look at injuries.
+  The first section is made up of the code that reads in and cleans the three data sets that will be used for the analysis. The Catapult data set will be used to look at running speeds, the Historical Running data
+set will be used for running imbalance and the Incident Report data will be used to look at injuries.
 
-The Catapult data set was filtered down to only include columns that had
-relevant statistics for the player such as their anonymous identifier
-and position and information about their velocities categorized through
-bands. The Historical Running data set only contained the anonymous ID,
-Date, and Running Imbalance value. So the only cleaning on this data set
-was to filter out rows with missing data. The Incident Report data set
-was filtered down to only look at Hamstring injuries(rows where column
-"OSICS14.Code" = "TM1"). All of the data sets were also filtered down to
-only include data from January 1, 2024 and on.
+  The Catapult data set was filtered down to only include columns that had relevant statistics for the player such as their anonymous identifier and position and information about their velocities categorized through bands. The Historical Running data set only contained the anonymous ID, Date, and Running Imbalance value. So the only cleaning on this data set was to filter out rows with missing data. The Incident Report data set
+was filtered down to only look at Hamstring injuries(rows where column OSICS14.Code = "TM1"). All of the data sets were also filtered down to only include data from January 1, 2024 and on.
   
   
 
@@ -219,7 +150,7 @@ only include data from January 1, 2024 and on.
 
   Each player tends to have a very unique variation in running imbalance. The team throughout time does not seem to have any larger spikes than normal in running imbalance suggesting that at no point in time did the team have a large shift in running imbalance all together. 
   
-  Through the use of three different bootstrap algorithms, we found that player who sustained a hamstring injury have a statistically significantly higher average variance in running imbalance and average absolute value running imbalance than players who did not sustain a hamstring injury. The average absolute value in running imbalance was a different very small though and it would be hard to differentiate the groups in practice only using the one estimated difference. 
+  Through the use of three different bootstrap algorithms, we found that players who sustained a hamstring injury have a statistically significantly higher average variance in running imbalance and average absolute value running imbalance than players who did not sustain a hamstring injury. The difference in average absolute value in running imbalance was very small though and it would be hard to differentiate the groups in practice only using the one estimated difference. 
   
   The different categories of positions tended to have the same average variance when estimated using a bootstrap method. Using the same bootstrapping method as before but estimating the average absolute value of running imbalance for each of the three categories revealed the Bigs and Combos had nearly identical estimates of the average running imbalance value of around 2.75%. But Skills had a statistically significant higher average absolute value running imbalance of around 3.15%. This may be due to the differing physical demands put onto the different categories of positions where Skills may be more inclined to favor one leg over another to accomplish their goal. 
   
@@ -230,7 +161,12 @@ only include data from January 1, 2024 and on.
   
   Along this same vein, players who sustained a hamstring injury and those who did not did not have a statically significant difference in Kendall rank correlation coefficients. Put simply, this means that players who sustained a hamstring injury did not have a more detectable monotonic trend (positive or negative) than their uninjured counterparts. This means that simply looking at running imbalance trends were not indicative of whether or not a player would sustain an injury. This supports the idea from before where the actual values of running imbalance are not strongly associated with injury risk, it's the variability in running imbalance that is stronger associated. 
 
+
 **Is running imbalance sensitive enough of a metric to use as a prognosis tool versus a rehab tool?**
 
-
+  Earlier analysis identified that variance in running imbalance across an athlete's career at CU Boulder tended to have the strongest relationship with HSI risk. For this reason, a model was built using variance in running imbalance from the date of the injury to the end of the prognosis time frame to predict whether or not the player returned to play within the predicted time frame. This model resulted in a statistically significant slope coefficient at the $\alpha$ = 0.01 significance level suggesting that there is a strong relationship between variance and the likelihood of the player returning within the predicted time frame. The value of the slope coefficient was -0.04135 which in the context of the model suggested that lower variance was associated with a higher likelihood of returning to play within the prognosis time frame. When this model was cross validated though, it had a classification error rate of 0.4 meaning that it may not be strong enough to make accurate definitive decisions about whether or not a player would return on time or not. 
+  
+  To see the relationship that variance in running imbalance had with return to play times, a bootstrap was performed to estimate the mean variance in running imbalance for the two groups (returned to play within the predicted time frame or not). This bootstrap revealed that players who did not return within the prognosis time frame had a higher average variance in running imbalance by 1.2 which is statistically significant at the $\alpha$ = 0.01 significance level. With there being a strong distinction between the two groups, but not enough sensitivity to make consistently accurate predictions, we suggest that variance in running imbalance throughout the recovery period could be used to supplement prognosis estimates made with rehab tools. 
+  
+  
 ### Final Results

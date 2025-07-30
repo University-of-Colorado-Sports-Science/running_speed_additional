@@ -2329,7 +2329,8 @@ ggplot(Historical_Running_clean, aes(Date, Running.Imbalance)) +
   geom_hline(yintercept = team_mean - (2*team_sd), color = "#A2A4A3") +
   geom_smooth(method = "lm", se = TRUE, color = "#CFB87C") +
   labs(title = "Team Running Imbalance Since January 1, 2024", y="Running Imbalance (%)",
-       subtitle = "\u03BC = 0.08623412, \u03C3^2 = 14.94215")
+       subtitle = "\u03BC = 0.08623412, \u03C3^2 = 14.94215") +
+  theme_minimal()
 
 #making scatter plot of team running imbalance data throughout season
 ggplot(Historical_Running_clean, aes(Date, Running.Imbalance)) +
@@ -2339,12 +2340,14 @@ ggplot(Historical_Running_clean, aes(Date, Running.Imbalance)) +
   geom_line(aes(x=Date, y=Date.Avg.Abs.Value), color = "#CFB87C") +
   geom_line(aes(x=Date, y=-Date.Avg.Abs.Value), color = "#CFB87C") +
   labs(title = "Team Running Imbalance Since January 1, 2024", y="Running Imbalance (%)",
-       subtitle = "\u03BC = 0.08623412, \u03C3^2 = 14.94215")
+       subtitle = "\u03BC = 0.08623412, \u03C3^2 = 14.94215") +
+  theme_minimal()
 
 #making histogram of team running imbalance data
 ggplot(Historical_Running_clean, aes(Running.Imbalance)) +
   geom_histogram() +
-  labs(title = "Team Running Imbalance Since January 1, 2024", x="Running Imbalance")
+  labs(title = "Team Running Imbalance Since January 1, 2024", x="Running Imbalance") +
+  theme_minimal()
 ```
 
 
@@ -2357,7 +2360,8 @@ ggplot(data=Historical_Running_clean[Historical_Running_clean$anon_id %in% injur
   geom_vline(xintercept = quantile(Historical_Running_clean[Historical_Running_clean$anon_id %in% injured_IDs,]$Running.Imbalance, 0.025), color = "#CFB87C") +
   geom_vline(xintercept = quantile(Historical_Running_clean[Historical_Running_clean$anon_id %in% injured_IDs,]$Running.Imbalance, 0.975), color = "#CFB87C") +
   xlim(-21,21) +
-  labs(title = "Running Imbalance for Players with HSI since January 1, 2024")
+  labs(title = "Running Imbalance for Players with HSI since January 1, 2024") +
+  theme_minimal()
 
 #making histogram for running imbalance of all uninjured athletes
 ggplot(data=Historical_Running_clean[Historical_Running_clean$anon_id %in% uninjured_IDs,], aes(Running.Imbalance)) +
@@ -2366,7 +2370,8 @@ ggplot(data=Historical_Running_clean[Historical_Running_clean$anon_id %in% uninj
   geom_vline(xintercept = quantile(Historical_Running_clean[Historical_Running_clean$anon_id %in% uninjured_IDs,]$Running.Imbalance, 0.025)) +
   geom_vline(xintercept = quantile(Historical_Running_clean[Historical_Running_clean$anon_id %in% uninjured_IDs,]$Running.Imbalance, 0.975)) +
   xlim(-21,21) +
-  labs(title = "Running Imbalance for Players without HSI since January 1, 2024")
+  labs(title = "Running Imbalance for Players without HSI since January 1, 2024") +
+  theme_minimal()
 
 #Plotting injured and uninjured histograms over top one another
 ggplot(data=Historical_Running_clean[Historical_Running_clean$anon_id %in% uninjured_IDs,], aes(Running.Imbalance)) +
@@ -2379,7 +2384,8 @@ ggplot(data=Historical_Running_clean[Historical_Running_clean$anon_id %in% uninj
   geom_vline(xintercept = quantile(Historical_Running_clean[Historical_Running_clean$anon_id %in% injured_IDs,]$Running.Imbalance, 0.05), color = "#CFB87C") +
   geom_vline(xintercept = quantile(Historical_Running_clean[Historical_Running_clean$anon_id %in% injured_IDs,]$Running.Imbalance, 0.95), color = "#CFB87C") +
   xlim(-21,21) +
-  labs(title = "Running Imbalance for Players with and without HSI since January 1, 2024")
+  labs(title = "Running Imbalance for Players with and without HSI since January 1, 2024") +
+  theme_minimal()
 ```
 
 
@@ -2388,13 +2394,15 @@ ggplot(data=Historical_Running_clean[Historical_Running_clean$anon_id %in% uninj
 ggplot(data=Historical_Running_clean[Historical_Running_clean$anon_id %in% injured_IDs,], aes(Date, Running.Imbalance)) + 
   geom_point(alpha = 0.3) +
   ylim(-21,21) +
-  labs(title = "Running Imbalance for Players with HSI since January 1, 2024")
+  labs(title = "Running Imbalance for Players with HSI since January 1, 2024") +
+  theme_minimal()
 
 #making scatter plot of running imbalance for uninjured players
 ggplot(data=Historical_Running_clean[Historical_Running_clean$anon_id %in% uninjured_IDs,], aes(Date, Running.Imbalance)) + 
   geom_point(alpha = 0.3) +
   ylim(-21,21) +
-  labs(title = "Running Imbalance for Players without HSI since January 1, 2024")
+  labs(title = "Running Imbalance for Players without HSI since January 1, 2024") +
+  theme_minimal()
 ```
 
 
@@ -2443,12 +2451,14 @@ ggplot(data=group_variances, aes(diff_in_var)) +
   geom_histogram() +
   geom_vline(xintercept = quantile(group_variances$diff_in_var, 0.05), color= "#CFB87C") +
   geom_vline(xintercept = quantile(group_variances$diff_in_var, 0.95), color= "#CFB87C") +
-  labs(x="Difference in Variance")
+  labs(x="Difference in Variance") +
+  theme_minimal()
 
 ggplot(data=group_variances) +
   geom_histogram(aes(injured_var), alpha = 0.75, fill ="#CFB87C") +
   geom_histogram(aes(uninjured_var), alpha = 0.75) +
-  labs(x="Variance")
+  labs(x="Variance") +
+  theme_minimal()
 ```
 
 
@@ -2479,12 +2489,14 @@ ggplot(data = mean_player_variances, aes(diff_in_var)) +
   geom_histogram() +
   geom_vline(xintercept = quantile(mean_player_variances$diff_in_var, 0.05), color= "#CFB87C") +
   geom_vline(xintercept = quantile(mean_player_variances$diff_in_var, 0.95), color= "#CFB87C") +
-  labs(x="Difference in Average Variance")
+  labs(title = "Difference in Estimated Average Variance for Injured and Uninjured Athletes", x="Difference in Average Variance") +
+  theme_minimal()
 
 ggplot(data=mean_player_variances) +
   geom_histogram(aes(injured_var), alpha = 0.75, fill ="#CFB87C") +
   geom_histogram(aes(uninjured_var), alpha = 0.75) +
-  labs(x="Average Variance")
+  labs(title = "Estimated Average Variance for Injured and Uninjured Athletes", x="Average Variance") +
+  theme_minimal()
 ```
 
 
@@ -2516,12 +2528,14 @@ ggplot(data = group_distance, aes(diff_in_dist)) +
   geom_histogram() +
   geom_vline(xintercept = quantile(group_distance$diff_in_dist, 0.05), color= "#CFB87C") +
   geom_vline(xintercept = quantile(group_distance$diff_in_dist, 0.95), color= "#CFB87C") +
-  labs(x="Difference in Distance")
+  labs(title = "Estimated Difference in Average Absolute Value", x="Difference in Average Absolute Value") +
+  theme_minimal()
 
 ggplot(data = group_distance) +
   geom_histogram(aes(injured_dist), alpha = 0.75, fill ="#CFB87C") +
   geom_histogram(aes(uninjured_dist), alpha = 0.75) +
-  labs(x="Average Absolute Value")
+  labs(title = "Estimated Average Absolute Value", x="Average Absolute Value")  +
+  theme_minimal()
 ```
 
 
@@ -2638,22 +2652,27 @@ for(i in 1:5000){
 ggplot(data=group_avg_variance, aes(COMBO_var)) +
   geom_histogram() +
   geom_vline(xintercept = quantile(group_avg_variance$COMBO_var, 0.05)) +
-  geom_vline(xintercept = quantile(group_avg_variance$COMBO_var, 0.95))
+  geom_vline(xintercept = quantile(group_avg_variance$COMBO_var, 0.95)) +
+  theme_minimal()
 
 ggplot(data=group_avg_variance, aes(SKILL_var)) +
-  geom_histogram() +
-  geom_vline(xintercept = quantile(group_avg_variance$SKILL_var, 0.05)) +
-  geom_vline(xintercept = quantile(group_avg_variance$SKILL_var, 0.95))
+  geom_histogram(fill="#CFB87C") +
+  geom_vline(xintercept = quantile(group_avg_variance$SKILL_var, 0.05), color="#CFB87C") +
+  geom_vline(xintercept = quantile(group_avg_variance$SKILL_var, 0.95), color="#CFB87C") +
+  theme_minimal()
 
 ggplot(data=group_avg_variance, aes(BIG_var)) +
-  geom_histogram() +
-  geom_vline(xintercept = quantile(group_avg_variance$BIG_var, 0.05)) +
-  geom_vline(xintercept = quantile(group_avg_variance$BIG_var, 0.95))
+  geom_histogram(fill="#A2A4A3") +
+  geom_vline(xintercept = quantile(group_avg_variance$BIG_var, 0.05), color="#A2A4A3") +
+  geom_vline(xintercept = quantile(group_avg_variance$BIG_var, 0.95), color="#A2A4A3") +
+  theme_minimal()
 
 ggplot(data=group_avg_variance) +
-  geom_histogram(aes(COMBO_var), alpha=0.5, fill="red") +
-  geom_histogram(aes(SKILL_var), alpha=0.5, fill="blue") +
-  geom_histogram(aes(BIG_var), alpha=0.5, fill="yellow")
+  geom_histogram(aes(COMBO_var), alpha=0.5, fill="black") +
+  geom_histogram(aes(SKILL_var), alpha=0.5, fill="#CFB87C") +
+  geom_histogram(aes(BIG_var), alpha=0.5, fill="#A2A4A3") +
+  labs(title="Estimated Average Variance in Running Imbalance", x="Average Variance in Running Imbalance") +
+  theme_minimal()
 ```
 ```{r}
 var_confints <- data.frame(Category = c("COMBO", "SKILL", "BIG"),
@@ -2668,9 +2687,11 @@ var_confints <- data.frame(Category = c("COMBO", "SKILL", "BIG"),
                                        quantile(group_avg_variance$BIG_var, 0.95)))
 head(var_confints)
 
-ggplot(data=var_confints, aes(x=Category, y=Median, ymin=Lower_Bound, ymax=Upper_Bound)) +
+ggplot(data=var_confints, aes(x=Category, y=Median, ymin=Lower_Bound, ymax=Upper_Bound, color=Category)) +
   geom_pointrange() +
-  labs(y="Running Imbalance Variance 90% CI")
+  labs(y="Estimated Average Variance in Running Imbalance", title="Running Imbalance Variance 90% CI") +
+  scale_color_manual(values = c("COMBO" = "black", "SKILL" = "#CFB87C", "BIG" = "#A2A4A3")) +
+  theme_minimal()
 ```
 ```{r}
 Historical_Running_clean <- Historical_Running_clean %>%
@@ -2706,10 +2727,12 @@ for(i in 1:5000){
 
 ```{r}
 ggplot(data=group_avg_dist) +
-  geom_histogram(aes(COMBO_dist), alpha=0.5, fill="red") +
-  geom_histogram(aes(SKILL_dist), alpha=0.5, fill="blue") +
-  geom_histogram(aes(BIG_dist), alpha=0.5, fill="yellow") +
-  labs(x="Average Absolute Value Running Imbalance")
+  geom_histogram(aes(COMBO_dist), alpha=0.5, fill="black") +
+  geom_histogram(aes(SKILL_dist), alpha=0.5, fill="#CFB87C") +
+  geom_histogram(aes(BIG_dist), alpha=0.5, fill="#A2A4A3") +
+  labs(title = "Estimated Average Absolute Value Running Imbalance", x="Average Absolute Value Running Imbalance") +
+  theme_minimal()
+
 ```
 
 
@@ -2726,20 +2749,30 @@ dist_confints <- data.frame(Category = c("COMBO", "SKILL", "BIG"),
                                        quantile(group_avg_dist$BIG_dist, 0.95)))
 head(dist_confints)
 
-ggplot(data=dist_confints, aes(x=Category, y=Median, ymin=Lower_Bound, ymax=Upper_Bound)) +
+ggplot(data=dist_confints, aes(x=Category, y=Median, ymin=Lower_Bound, ymax=Upper_Bound, color=Category)) +
   geom_pointrange() +
-  labs(y="Running Imbalance Absolute Value 90% CI")
+  scale_color_manual(values = c("COMBO" = "black", "SKILL" = "#CFB87C", "BIG" = "#A2A4A3")) +
+  labs(title="Average Absolute Value Running Imbalance 90% CI", y="Estimated Average Absolute Value Running Imbalance") +
+  theme_minimal()
 ```
+
+
 ```{r}
 Injury_Incidents <- distinct(Incident_Report_clean[,c("anon_id", "Position", "Date.of.Injury")])
 
 Position_counts <- na.omit(distinct(Historical_Running_clean[,c("anon_id", "Position")]))
 
-ggplot(Injury_Incidents, aes(Position)) +
-  geom_bar()
+ggplot(Injury_Incidents, aes(Position, fill=Position)) +
+  geom_bar() +
+  scale_fill_manual(values = c("COMBO" = "black", "SKILL" = "#CFB87C", "BIG" = "#A2A4A3")) +
+  labs(title="Hamstring Injuries by Position") +
+  theme_minimal()
 
-ggplot(Position_counts, aes(Position)) +
-  geom_bar()
+ggplot(Position_counts, aes(Position, fill=Position)) +
+  geom_bar() +
+  scale_fill_manual(values = c("COMBO" = "black", "SKILL" = "#CFB87C", "BIG" = "#A2A4A3")) +
+  labs(title="Total Position Counts on Team") +
+  theme_minimal()
 ```
 
 ```{r Removing unnecessary objects from environment}
@@ -3044,7 +3077,10 @@ ggplot(trends[trends$KC>0 & trends$injured==1,], aes(KC)) +
 
 ggplot(trends[trends$KC>0 & trends$injured==0,], aes(KC)) +
   geom_histogram()
+
 ```
+
+
 ```{r}
 injured_trends <- trends %>%
   filter(injured==1)
@@ -3073,12 +3109,16 @@ for(i in 1:5000){
 ```{r}
 ggplot(data=kendall_cors, aes(avg_diff_KC)) +
   geom_histogram() +
-  geom_vline(xintercept = quantile(kendall_cors$avg_diff_KC, 0.05)) +
-  geom_vline(xintercept = quantile(kendall_cors$avg_diff_KC, 0.95))
+  geom_vline(xintercept = quantile(kendall_cors$avg_diff_KC, 0.05), color = "#CFB87C") +
+  geom_vline(xintercept = quantile(kendall_cors$avg_diff_KC, 0.95), color = "#CFB87C") +
+  labs(title = "Estimated Difference in Average Kendall Rank Correlation Coefficient",
+       x = "Difference in Average Kendall Coefficient")
 
 ggplot(data=kendall_cors) +
-  geom_histogram(aes(injured_avg_KC), alpha=0.3, fill="red") +
-  geom_histogram(aes(uninjured_avg_KC), alpha=0.3)
+  geom_histogram(aes(injured_avg_KC), alpha=0.7, fill="#CFB87C") +
+  geom_histogram(aes(uninjured_avg_KC), alpha=0.7) +
+  labs(title = "Estimated Average Kendall Rank Correlation Coefficient",
+       x = "Average Kendall Coefficient")
 ```
 
 
@@ -3126,24 +3166,28 @@ Incident_Report_clean <- Incident_Report_clean %>%
 for(i in 1:22){
   #looking at mean running imbalance per week before and after injury for each injured player
   p <- ggplot(data=Historical_Running_clean[Historical_Running_clean$anon_id == injured_IDs[i],], aes(Date, Running.Imbalance)) +
-  geom_line(linewidth=0.1) +
-  geom_point() +
+  geom_line() +
     #Marking when injury occurred with red line
-  geom_vline(xintercept=Incident_Report_clean[Incident_Report_clean$anon_id==injured_IDs[i],]$Date.of.Injury, color="red") +
+  geom_vline(xintercept=Incident_Report_clean[Incident_Report_clean$anon_id==injured_IDs[i],]$Date.of.Injury, color="#CFB87C") +
     #Marking actual return date with solid green line
-  geom_vline(xintercept=Incident_Report_clean[Incident_Report_clean$anon_id==injured_IDs[i],]$Actual.Return, color="green", linetype=1) +
+  geom_vline(xintercept=Incident_Report_clean[Incident_Report_clean$anon_id==injured_IDs[i],]$Actual.Return, color="#8D7334", linetype=1) +
   #Marking beginning of predicted return to play range with purple dotted line
-  geom_vline(xintercept=Incident_Report_clean[Incident_Report_clean$anon_id==injured_IDs[i],]$Expected.Start.Return, color="purple", linetype=3) +
+  geom_vline(xintercept=Incident_Report_clean[Incident_Report_clean$anon_id==injured_IDs[i],]$Expected.Start.Return, color="#A2A4A3", linetype=3) +
     #Marking end of predicted return to play range with purple dotted line
-  geom_vline(xintercept=Incident_Report_clean[Incident_Report_clean$anon_id==injured_IDs[i],]$Expected.End.Return, color="purple", linetype=3) +
-    labs(title=injured_IDs[i])
+  geom_vline(xintercept=Incident_Report_clean[Incident_Report_clean$anon_id==injured_IDs[i],]$Expected.End.Return, color="#A2A4A3", linetype=3) +
+    labs(title=injured_IDs[i]) +
+    annotate("rect", 
+             xmin = Incident_Report_clean[Incident_Report_clean$anon_id==injured_IDs[i],]$Expected.Start.Return,
+             xmax = Incident_Report_clean[Incident_Report_clean$anon_id==injured_IDs[i],]$Expected.End.Return,
+             ymin=min(Historical_Running_clean[Historical_Running_clean$anon_id == injured_IDs[i],]$Running.Imbalance), ymax=max(Historical_Running_clean[Historical_Running_clean$anon_id == injured_IDs[i],]$Running.Imbalance), alpha=0.3) +
+    theme_minimal()
   
   print(p)
 }
 
 ```
 
-
+# Focus on 291 for outside and 285 for inside
 ```{r}
 #looking at running imbalance of only injured players
 Injured_Historical_Running <- Historical_Running_clean %>%
@@ -3275,7 +3319,10 @@ ggplot(data=Range_Variances, aes(diff.avg.var)) +
   geom_histogram() +
   #adding in 90% CI (does not include 0)
   geom_vline(xintercept = quantile(Range_Variances$diff.avg.var, 0.05), color ="#CFB87C") +
-  geom_vline(xintercept = quantile(Range_Variances$diff.avg.var, 0.95), color ="#CFB87C")
+  geom_vline(xintercept = quantile(Range_Variances$diff.avg.var, 0.95), color ="#CFB87C") +
+  labs(title = "Estimated Difference in Average Variance of Running Imbalance",
+       x= "Difference in Average Variance Running Imbalance") +
+  theme_minimal()
 
 #plotting average variances of difference groups
 ggplot(data=Range_Variances) +
@@ -3283,7 +3330,9 @@ ggplot(data=Range_Variances) +
   geom_histogram(aes(in.avg.var), alpha = 0.75) +
   #players who did not recover in the predicted time frame
   geom_histogram(aes(out.avg.var), alpha = 0.75, fill ="#CFB87C") +
-  labs(x="Average Variance")
+  labs(title = "Estimated Average Variance in Running Imbalance", 
+       x="Average Variance in Running Imbalance") +
+  theme_minimal()
 ```
 
 
