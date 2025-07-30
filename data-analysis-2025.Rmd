@@ -368,20 +368,20 @@ weekly_90_counts <- Catapult_Session_clean %>%
   group_by(week) %>%
   summarise(weekly_hits = n())
 
+mean_val <- round(mean(weekly_90_counts$weekly_hits), 1)
+
 ggplot(weekly_90_counts, aes(x = week, y = weekly_hits)) +
   geom_line(color = "#CFB87C", linewidth = 1) +
-  geom_point(color = "#565A5C") +
-  geom_hline(yintercept = mean(weekly_90_counts$weekly_hits), 
-             linetype = "dashed", color = "#565A5C", linewidth = 0.6) +
+  geom_point(color = "#000000") +
+  geom_smooth(method = "loess", se = FALSE, color = "#565A5C", linetype = "dashed", linewidth = 0.6) +
   labs(title = "Weekly Count of Players Reaching ≥ 90% of Max Velocity",
+       subtitle = paste0("Week Average: ", mean_val),
        x = "Week", y = "Times reached ≥ 90%") +
   theme_classic()
 ```
 
 ```{r}
 # Bar chart of weekly >90% counts
-
-mean_val <- mean(weekly_90_counts$weekly_hits)
 
 ggplot(weekly_90_counts, aes(x = week, y = weekly_hits)) +
   geom_col(fill = "#CFB87C", color = "#565A5C", width = 5) +
@@ -823,17 +823,17 @@ ggplot() +
   facet_wrap(~ Position_Group) +
   scale_y_continuous(
     name = "Mean % Effort",
-    sec.axis = sec_axis(~ . * max_velocity / max_effort, name = "Mean Weekly Max Velocity (m/s)")  # adjust unit if needed
+    sec.axis = sec_axis(~ . * max_velocity / max_effort, name = "Mean Weekly Max Velocity (m/s)")
   ) +
   scale_color_manual(
     values = c(
-      "V2" = "darkgreen",
-      "V3" = "green2",
-      "V4" = "greenyellow",
-      "V5" = "yellow",
-      "V6" = "orange",
-      "V7" = "tomato",
-      "V8" = "firebrick",
+      "mean_pct_V2" = "darkgreen",
+      "mean_pct_V3" = "green2",
+      "mean_pct_V4" = "greenyellow",
+      "mean_pct_V5" = "yellow",
+      "mean_pct_V6" = "orange",
+      "mean_pct_V7" = "tomato",
+      "mean_pct_V8" = "firebrick",
       "Max Velocity" = "black"
     )
   ) +
