@@ -378,6 +378,7 @@ ggplot(weekly_90_counts, aes(x = week, y = weekly_hits)) +
   theme_classic()
 ```
 
+
 ```{r}
 # Bar chart of weekly >90% counts
 
@@ -521,6 +522,54 @@ unique(weekly_velocity_efforts$anon_id) %>%
 
 Each player is different in reaching different velocity bands in relation to their top speeds. Some players, ID_11 for example, rarely enter bands 6 or higher, even if they are close to 100% of their max velocity. This shows the issues with using absolute bands for the whole team.
 
+
+```{r}
+# Filter for ID_11 and reshape the data
+player_weekly_data <- weekly_velocity_efforts %>%
+  filter(anon_id == "ID_11") %>%
+  select(week, pct_V2:pct_V8, pct_of_max_velocity) %>%
+  pivot_longer(
+    cols = starts_with("pct_V"),
+    names_to = "velocity_band",
+    values_to = "percent_effort"
+  ) %>%
+  mutate(
+    velocity_band = factor(
+      velocity_band,
+      levels = paste0("pct_V", 8:2),
+      labels = paste0("V", 8:2)
+    )
+  )
+
+# Plot for ID_11
+ggplot(player_weekly_data, aes(x = week)) +
+  geom_col(aes(y = percent_effort, fill = velocity_band), position = "stack") +
+  geom_line(aes(y = pct_of_max_velocity, group = 1), color = "black", size = 1.2) +
+  geom_point(aes(y = pct_of_max_velocity), color = "black", size = 2) +
+  scale_fill_manual(
+    values = c(
+      "V2" = "darkgreen",
+      "V3" = "green2",
+      "V4" = "greenyellow",
+      "V5" = "yellow",
+      "V6" = "orange",
+      "V7" = "tomato",
+      "V8" = "firebrick"
+    )
+  ) +
+  scale_y_continuous(
+    name = "Band Distribution (%)",
+    sec.axis = sec_axis(~ ., name = "Weekly Max Velocity (% of PR)")
+  ) +
+  labs(
+    title = "Velocity Band Effort % and Speed Trend for Player ID_11",
+    x = "Week",
+    fill = "Velocity Band"
+  ) +
+  theme_classic()
+```
+
+
 ```{r}
 # Pick one player
 player_id <- "ID_93"
@@ -578,6 +627,28 @@ cor_data <- weekly_velocity_efforts %>%
 cor_matrix <- cor(cor_data, use = "pairwise.complete.obs")
 
 cor_matrix
+
+
+# Compute correlations with pct_of_max_velocity
+cor_values <- cor_data %>%
+  summarise(across(-pct_of_max_velocity,
+                   ~ cor(.x, cor_data$pct_of_max_velocity, use = "pairwise.complete.obs"))) %>%
+  pivot_longer(cols = everything(), names_to = "variable", values_to = "correlation")
+
+# Plot with labels
+ggplot(cor_values, aes(x = reorder(variable, correlation), y = correlation)) +
+  geom_col(fill = "#CFB87C") +
+  geom_text(aes(label = round(correlation, 2)), 
+            hjust = ifelse(cor_values$correlation >= 0, -0.1, 1.1), 
+            color = "black", size = 3) +
+  coord_flip() +
+  geom_hline(yintercept = 0, color = "black", linetype = "dashed") +
+  labs(
+    title = "Correlation Between Percent in Band and Percent of Max Velocity",
+    x = "Band",
+    y = "Pearson Correlation"
+  ) +
+  theme_classic() 
 ```
 V4 and V5 appear to be slightly more predictive of top-speed achievement than V6, V7 or V8 — possibly because they're more frequently reached zones.
 
@@ -808,7 +879,7 @@ ggplot() +
 ```
 
 ```{r}
-# Define max effort and max velocity range (adjust as needed)
+# Define max effort and max velocity range
 max_effort <- 67
 max_velocity <- max(weekly_band_effort_by_group$mean_weekly_max_velocity, na.rm = TRUE)
 
@@ -818,22 +889,22 @@ ggplot() +
   # Scale max_velocity to % effort scale to overlay on left axis
   geom_line(data = weekly_band_effort_by_group, 
             aes(x = week, y = (mean_weekly_max_velocity / max_velocity) * max_effort, color = "Max Velocity"),
-            size = 1.2) +
+            size = 1.1) +
   
   facet_wrap(~ Position_Group) +
   scale_y_continuous(
     name = "Mean % Effort",
-    sec.axis = sec_axis(~ . * max_velocity / max_effort, name = "Mean Weekly Max Velocity (m/s)")  # adjust unit if needed
+    sec.axis = sec_axis(~ . * max_velocity / max_effort, name = "Mean Weekly Max Velocity (m/s)")
   ) +
   scale_color_manual(
     values = c(
-      "V2" = "darkgreen",
-      "V3" = "green2",
-      "V4" = "greenyellow",
-      "V5" = "yellow",
-      "V6" = "orange",
-      "V7" = "tomato",
-      "V8" = "firebrick",
+      "mean_pct_V2" = "darkgreen",
+      "mean_pct_V3" = "green2",
+      "mean_pct_V4" = "greenyellow",
+      "mean_pct_V5" = "yellow",
+      "mean_pct_V6" = "orange",
+      "mean_pct_V7" = "tomato",
+      "mean_pct_V8" = "firebrick",
       "Max Velocity" = "black"
     )
   ) +
@@ -1425,26 +1496,35 @@ injuries_and_running <- injured_data %>%
 
 
 ```{r}
-# For demonstration: pick one player (or loop over them)
-player_id <- "ID_307"
 
 injuries_and_running <- injuries_and_running %>%
   mutate(relative_band = factor(relative_band, levels = band_levels))
 
+
+# Filter to only include players 194 and 285
+selected_players <- c(194, 285)
 plot_data <- injuries_and_running %>%
-  filter(anon_id == player_id)
+  filter(anon_id %in% selected_players)
 
-# Find injury weeks for this player
-injury_week_nums <- plot_data %>% filter(injury == 1) %>% pull(week)
+# Identify injury weeks for shading
+injury_shading <- plot_data %>%
+  filter(injury == 1) %>%
+  mutate(
+    xmin = week - 3,
+    xmax = week + 3,
+    ymin = -Inf,
+    ymax = Inf
+  )
 
+# Create a single faceted plot
 ggplot(plot_data, aes(x = week)) +
-  # Highlight injury week(s) as shaded rectangles
-  geom_rect(data = data.frame(week = injury_week_nums),
-            aes(xmin = week - 3, xmax = week + 3, ymin = -Inf, ymax = Inf),
+  geom_rect(data = injury_shading,
+            aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax),
             fill = "blue", alpha = 0.2, inherit.aes = FALSE) +
   geom_col(aes(y = pct_effort, fill = relative_band), position = position_stack(reverse = TRUE)) +
   geom_line(aes(y = pct_of_max_velocity, group = 1), color = "black", size = 1.2) +
   geom_point(aes(y = pct_of_max_velocity), color = "black", size = 2) +
+  facet_wrap(~ anon_id, scales = "free_x") +
   scale_fill_manual(
     values = c(
       "V2 (<40%)" = "darkgreen",
@@ -1456,16 +1536,17 @@ ggplot(plot_data, aes(x = week)) +
       "V8 (90-100%)" = "darkred"
     )
   ) +
-  labs(
-    title = paste("Relative Velocity Band Effort % and Max Velocity Trend for", player_id),
-    x = "Week",
-    y = "Percent of Weekly Efforts",
-    fill = "Relative Velocity Band"
-  ) +
   scale_y_continuous(
+    name = "Percent of Weekly Effort",
     sec.axis = sec_axis(~ ., name = "Percent of Max Velocity")
   ) +
+  labs(
+    title = "Velocity Band Exposure & Max % for Injured Players 194 and 285",
+    x = "Week",
+    fill = "Relative Velocity Band"
+  ) +
   theme_classic()
+
 ```
 
 
@@ -1617,7 +1698,7 @@ ggplot(injuries_and_running_clean, aes(x = week, y = pct_of_max_velocity)) +
                      labels = c("No Injury", "Injury"),
                      name = "Injury Status") +
   labs(
-    title = "% of Max Velocity by Week",
+    title = "Percent of Max Velocity by Week",
     subtitle = paste("Mean % of Max Velocity, Injury: ", round(injury_mean, 2), " |  Mean % of Max Velocity, Non-Injury: ", round(non_injury_mean, 2)),
     x = "Week",
     y = "% of Max Velocity Reached"
@@ -1628,7 +1709,7 @@ ggplot(injuries_and_running_clean, aes(x = week, y = pct_of_max_velocity)) +
 ggplot(injury_weeks, aes(x = week, y = pct_of_max_velocity)) +
   geom_point(color = "red") +
   labs(
-    title = "% of Max Velocity During Injury Weeks",
+    title = "Percent of Max Velocity During Injury Weeks",
     subtitle = paste("% of Max Velocity Mean: ", round(injury_mean, 2)),
     x = "Week",
     y = "% of Max Velocity"
@@ -1641,7 +1722,7 @@ ggplot(injury_weeks, aes(x = factor(injury_event), y = pct_of_max_velocity)) +
   geom_text(aes(label = round(pct_of_max_velocity, 1)),  # round to 1 decimal place
             vjust = -0.5, size = 2.75) +
   labs(
-    title = "% of Max Velocity During Injury Weeks",
+    title = "Percent of Max Velocity During Injury Weeks",
     subtitle = paste("Mean: ", round(injury_mean, 2)),
     x = "Injury Event",
     y = "% of Max Velocity"
@@ -1694,8 +1775,12 @@ non_injury_week_prior <- week_prior %>%
   filter(injury == 0)
 
 # Get Means
-injury_week_prior_mean <- mean(injury_week_prior$lag1_pct_of_max_velocity)
-non_injury_week_prior_mean <- mean(non_injury_week_prior$lag1_pct_of_max_velocity)
+means_injury <- injury_week_prior %>%
+  drop_na(lag1_pct_of_max_velocity)
+injury_week_prior_mean <- mean(means_injury$lag1_pct_of_max_velocity)
+mean_noninjury <- non_injury_week_prior %>%
+  drop_na(lag1_pct_of_max_velocity)
+non_injury_week_prior_mean <- mean(mean_noninjury$lag1_pct_of_max_velocity)
 injury_week_prior_mean
 non_injury_week_prior_mean
 
@@ -1708,7 +1793,7 @@ ggplot(week_prior, aes(x = week, y = lag1_pct_of_max_velocity)) +
                      labels = c("No Injury", "Injury"),
                      name = "Injury Status") +
   labs(
-    title = "% of Max Velocity of Prior Week",
+    title = "Percent of Max Velocity of Prior Week",
     subtitle = paste("Mean % of Max Velocity, Injury: ", round(injury_week_prior_mean, 2), " |  Mean % of Max Velocity, Non-Injury: ", round(non_injury_week_prior_mean, 2)),
     x = "Week",
     y = "% of Max Velocity Reached"
@@ -1719,7 +1804,7 @@ ggplot(week_prior, aes(x = week, y = lag1_pct_of_max_velocity)) +
 ggplot(injury_week_prior, aes(x = week, y = lag1_pct_of_max_velocity)) +
   geom_point(color = "red") +
   labs(
-    title = "% of Max Velocity the week before injury",
+    title = "Percent of Max Velocity the week before injury",
     subtitle = paste("% of Max Velocity Mean: ", round(injury_week_prior_mean, 2)),
     x = "Week",
     y = "% of Max Velocity"
@@ -1732,7 +1817,7 @@ ggplot(injury_week_prior, aes(x = factor(injury_event), y = lag1_pct_of_max_velo
   geom_text(aes(label = round(pct_of_max_velocity, 1)),  # round to 1 decimal place
             vjust = -0.5, size = 2.75) +
   labs(
-    title = "% of Max Velocity the Week Before Injury",
+    title = "Percent of Max Velocity the Week Before Injury",
     subtitle = paste("% Max Mean: ", round(injury_week_prior_mean, 2)),
     x = "Injury Event",
     y = "% of Max Velocity"
