@@ -3252,13 +3252,13 @@ for(i in 1:22){
   #looking at mean running imbalance per week before and after injury for each injured player
   p <- ggplot(data=Historical_Running_clean[Historical_Running_clean$anon_id == injured_IDs[i],], aes(Date, Running.Imbalance)) +
   geom_line() +
-    #Marking when injury occurred with red line
+    #Marking when injury occurred with gold line
   geom_vline(xintercept=Incident_Report_clean[Incident_Report_clean$anon_id==injured_IDs[i],]$Date.of.Injury, color="#CFB87C") +
-    #Marking actual return date with solid green line
+    #Marking actual return date with solid brown line
   geom_vline(xintercept=Incident_Report_clean[Incident_Report_clean$anon_id==injured_IDs[i],]$Actual.Return, color="#8D7334", linetype=1) +
-  #Marking beginning of predicted return to play range with purple dotted line
+  #Marking beginning of predicted return to play range with grey dotted line
   geom_vline(xintercept=Incident_Report_clean[Incident_Report_clean$anon_id==injured_IDs[i],]$Expected.Start.Return, color="#A2A4A3", linetype=3) +
-    #Marking end of predicted return to play range with purple dotted line
+    #Marking end of predicted return to play range with grey dotted line
   geom_vline(xintercept=Incident_Report_clean[Incident_Report_clean$anon_id==injured_IDs[i],]$Expected.End.Return, color="#A2A4A3", linetype=3) +
     labs(title=injured_IDs[i]) +
     annotate("rect", 
@@ -3272,7 +3272,8 @@ for(i in 1:22){
 
 ```
 
-# Focus on 291 for outside and 285 for inside
+
+
 ```{r}
 #looking at running imbalance of only injured players
 Injured_Historical_Running <- Historical_Running_clean %>%
