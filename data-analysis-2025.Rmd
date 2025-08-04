@@ -311,6 +311,50 @@ plots_by_group <- lapply(positions_groups, function(pos) {
 The skill position group has the highest average times reached ≥90% Max with 17.1, then combo with 9.3, then bigs with 8.9.
 
 ```{r}
+# Make facet plot so that it fits on the presentation slides better.
+
+# Calculate averages for each group and the team
+group_avgs <- hit_90_counts %>%
+  group_by(Position_Group) %>%
+  summarise(group_avg = mean(times_hit_90))
+
+team_avg <- mean(hit_90_counts$times_hit_90)
+
+# Join group averages back to the main data
+plot_data <- hit_90_counts %>%
+  left_join(group_avgs, by = "Position_Group")
+
+# Create label data with formatted strings
+avg_labels <- plot_data %>%
+  group_by(Position_Group) %>%
+  summarise(
+    group_avg = unique(group_avg),
+    team_avg = team_avg,
+    label_x = 1,
+    group_label_y = group_avg + 1,
+    team_label_y = team_avg + 1,
+    group_label = round(group_avg, 1),
+    team_label = round(team_avg, 1),
+    .groups = "drop"
+  )
+
+# Plot
+ggplot(plot_data, aes(x = anon_id, y = times_hit_90)) +
+  geom_bar(stat = "identity", fill = "#CFB87C") +
+  geom_hline(aes(yintercept = group_avg), linetype = "dashed", color = "#000000") +
+  geom_hline(yintercept = team_avg, linetype = "dotted", color = "#565A5C") +
+  geom_text(data = avg_labels, aes(x = label_x, y = group_label_y, label = group_label),
+            inherit.aes = FALSE, hjust = 0, size = 3, color = "#000000") +
+  geom_text(data = avg_labels, aes(x = label_x, y = team_label_y, label = team_label),
+            inherit.aes = FALSE, hjust = 0, size = 3, color = "#565A5C") +
+  facet_wrap(~ Position_Group, scales = "free_x") +
+  labs(title = "Times Reached ≥90% Max Velocity by Position Group",
+       y = "Count", x = "anon_id") +
+  theme_classic() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
+```{r}
 # Create position group avg count table
 
 # Create team average row
@@ -1032,20 +1076,21 @@ ID_11 <- Catapult_Session_clean %>%
     # Create Relative Bands
     relative_band = cut(
       pct_of_max,
-      breaks = c(0, 40, 50, 60, 70, 80, 90, 100),
-      labels = c("V2 (<40%)", "V3 (40-50%)","V4 (50-60%)" ,"V5 (60-70%)", "V6 (70-80%)", "V7 (80-90%)", "V8 (90-100%)"),
+      breaks = c(20, 40, 50, 60, 70, 80, 90, 100),
+      labels = c("V2 (20-40%)", "V3 (40-50%)","V4 (50-60%)" ,"V5 (60-70%)", "V6 (70-80%)", "V7 (80-90%)", "V8 (90-100%)"),
       right = TRUE, # Set to TRUE to include 100% in band
       include.lowest = TRUE  # Includes 0 in first band
     ),
     # Reverse factor levels so highest band is on top in plot
   relative_band = factor(
     relative_band,
-    levels = rev(c("V2 (<40%)", "V3 (40-50%)","V4 (50-60%)" ,"V5 (60-70%)", "V6 (70-80%)", "V7 (80-90%)", "V8 (90-100%)"))
+    levels = rev(c("V2 (20-40%)", "V3 (40-50%)","V4 (50-60%)" ,"V5 (60-70%)", "V6 (70-80%)", "V7 (80-90%)", "V8 (90-100%)"))
   )
   )
 
 # Summarize counts per week and relative band
 weekly_effort <- ID_11 %>%
+  filter(!is.na(relative_band)) %>%
   group_by(week, relative_band) %>%
   summarise(count = n(), .groups = "drop") %>%
   group_by(week) %>%
@@ -1069,14 +1114,14 @@ weekly_effort_wide <- weekly_effort_wide %>%
 # Pivot longer for stacked bar plotting
 weekly_effort_long <- weekly_effort_wide %>%
   pivot_longer(
-    cols = c("V2 (<40%)", "V3 (40-50%)","V4 (50-60%)" ,"V5 (60-70%)", "V6 (70-80%)", "V7 (80-90%)", "V8 (90-100%)"),
+    cols = c("V2 (20-40%)", "V3 (40-50%)","V4 (50-60%)" ,"V5 (60-70%)", "V6 (70-80%)", "V7 (80-90%)", "V8 (90-100%)"),
     names_to = "relative_band",
     values_to = "pct_effort"
   ) %>%
   mutate(
     relative_band = factor(
       relative_band,
-      levels = rev(c("V2 (<40%)", "V3 (40-50%)","V4 (50-60%)" ,"V5 (60-70%)", "V6 (70-80%)", "V7 (80-90%)", "V8 (90-100%)"))
+      levels = rev(c("V2 (20-40%)", "V3 (40-50%)","V4 (50-60%)" ,"V5 (60-70%)", "V6 (70-80%)", "V7 (80-90%)", "V8 (90-100%)"))
     )
   )
 ```
@@ -1091,7 +1136,7 @@ ggplot(weekly_effort_long, aes(x = week, y = pct_effort, fill = relative_band)) 
              color = "black", size = 2) +
   scale_fill_manual(
     values = c(
-      "V2 (<40%)" = "darkgreen",
+      "V2 (20-40%)" = "darkgreen",
       "V3 (40-50%)" = "green2",
       "V4 (50-60%)" = "greenyellow",
       "V5 (60-70%)" = "yellow",
@@ -1135,8 +1180,8 @@ unique(clean_anons$anon_id) %>%
         # Create Relative Bands
         relative_band = cut(
           pct_of_max,
-          breaks = c(0, 40, 50, 60, 70, 80, 90, 100),
-          labels = c("V2 (<40%)", "V3 (40-50%)", "V4 (50-60%)", "V5 (60-70%)",
+          breaks = c(20, 40, 50, 60, 70, 80, 90, 100),
+          labels = c("V2 (20-40%)", "V3 (40-50%)", "V4 (50-60%)", "V5 (60-70%)",
                      "V6 (70-80%)", "V7 (80-90%)", "V8 (90-100%)"),
           right = TRUE, # Set to true to include 100%
           include.lowest = TRUE  # Set to true to include 0 in 1st interval
@@ -1144,7 +1189,7 @@ unique(clean_anons$anon_id) %>%
         # Reverse factor levels so highest band is on top in plot
         relative_band = factor(
           relative_band,
-          levels = rev(c("V2 (<40%)", "V3 (40-50%)", "V4 (50-60%)", "V5 (60-70%)",
+          levels = rev(c("V2 (20-40%)", "V3 (40-50%)", "V4 (50-60%)", "V5 (60-70%)",
                          "V6 (70-80%)", "V7 (80-90%)", "V8 (90-100%)"))
         )
       )
@@ -1153,6 +1198,7 @@ unique(clean_anons$anon_id) %>%
 
     # Summarize counts per week and relative band
     weekly_effort <- player_data %>%
+      filter(!is.na(relative_band)) %>%
       group_by(week, relative_band) %>%
       summarise(count = n(), .groups = "drop") %>%
       group_by(week) %>%
@@ -1183,7 +1229,7 @@ unique(clean_anons$anon_id) %>%
       mutate(
         relative_band = factor(
           relative_band,
-          levels = rev(c("V2 (<40%)", "V3 (40-50%)", "V4 (50-60%)", "V5 (60-70%)",
+          levels = rev(c("V2 (20-40%)", "V3 (40-50%)", "V4 (50-60%)", "V5 (60-70%)",
                          "V6 (70-80%)", "V7 (80-90%)", "V8 (90-100%)"))
         )
       )
@@ -1195,7 +1241,7 @@ unique(clean_anons$anon_id) %>%
       geom_point(aes(y = pct_of_max_velocity), color = "black", size = 2) +
       scale_fill_manual(
         values = c(
-          "V2 (<40%)" = "darkgreen",
+          "V2 (20-40%)" = "darkgreen",
           "V3 (40-50%)" = "green2",
           "V4 (50-60%)" = "greenyellow",
           "V5 (60-70%)" = "yellow",
@@ -1226,7 +1272,7 @@ unique(clean_anons$anon_id) %>%
 # Create relative bands for all athletes
 
 # Define the velocity band labels
-band_levels <- c("V2 (<40%)", "V3 (40-50%)", "V4 (50-60%)", "V5 (60-70%)",
+band_levels <- c("V2 (20-40%)", "V3 (40-50%)", "V4 (50-60%)", "V5 (60-70%)",
                      "V6 (70-80%)", "V7 (80-90%)", "V8 (90-100%)")
 
 # Create exposure data frame for all players
@@ -1238,13 +1284,14 @@ weekly_sprint_exposure <- Catapult_Session_clean %>%
     pct_of_max = (Maximum.Velocity / Player.Max.Velocity) * 100,
     relative_band = cut(
       pct_of_max,
-      breaks = c(0, 40, 50, 60, 70, 80, 90, 100.1),
+      breaks = c(20, 40, 50, 60, 70, 80, 90, 100.1),
       labels = band_levels,
       right = TRUE,  # will include 100
       include.lowest = TRUE
     ),
     relative_band = factor(relative_band, levels = band_levels)
   ) %>%
+  filter(!is.na(relative_band)) %>%
   group_by(anon_id, week, relative_band) %>%
   summarise(effort_count = n(), .groups = "drop") %>%
   group_by(anon_id, week) %>%
@@ -1293,7 +1340,7 @@ BIG <- c("OL", "DL", "DE", "DT")
 SKILL <- c("WR", "DB", "CB", "SAF")
 Positions <- c("COMBO", "BIG", "SKILL")
 
-weekly_sprint_exposure <- left_join(weekly_sprint_exposure,player_positions, by = "anon_id", relationship = "many-to-many")
+weekly_sprint_exposure <- left_join(weekly_sprint_exposure, player_positions, by = "anon_id", relationship = "many-to-many")
 
 weekly_sprint_exposure <- weekly_sprint_exposure %>%
   mutate(Position = case_when(Primary.Position %in% COMBO ~ "COMBO",
@@ -1319,7 +1366,7 @@ sprint_exposure_big <- weekly_sprint_exposure %>%
          avg_V5 = mean(`V5 (60-70%)`),
          avg_V4 = mean(`V4 (50-60%)`),
          avg_V3 = mean(`V3 (40-50%)`),
-         avg_V2 = mean(`V2 (<40%)`)) %>%
+         avg_V2 = mean(`V2 (20-40%)`)) %>%
   ungroup() %>%
   na.omit()
 
@@ -1333,7 +1380,7 @@ sprint_exposure_combo <- weekly_sprint_exposure %>%
          avg_V5 = mean(`V5 (60-70%)`),
          avg_V4 = mean(`V4 (50-60%)`),
          avg_V3 = mean(`V3 (40-50%)`),
-         avg_V2 = mean(`V2 (<40%)`)) %>%
+         avg_V2 = mean(`V2 (20-40%)`)) %>%
   ungroup() %>%
   na.omit()
 
@@ -1347,7 +1394,7 @@ sprint_exposure_skill <- weekly_sprint_exposure %>%
          avg_V5 = mean(`V5 (60-70%)`),
          avg_V4 = mean(`V4 (50-60%)`),
          avg_V3 = mean(`V3 (40-50%)`),
-         avg_V2 = mean(`V2 (<40%)`)) %>%
+         avg_V2 = mean(`V2 (20-40%)`)) %>%
   ungroup() %>%
   na.omit()
   
@@ -1502,9 +1549,8 @@ injuries_and_running <- injuries_and_running %>%
 
 
 # Filter to only include players 194 and 285
-selected_players <- c(194, 285)
 plot_data <- injuries_and_running %>%
-  filter(anon_id %in% selected_players)
+  filter(anon_id %in% c("ID_194", "ID_285"))
 
 # Identify injury weeks for shading
 injury_shading <- plot_data %>%
@@ -1527,7 +1573,7 @@ ggplot(plot_data, aes(x = week)) +
   facet_wrap(~ anon_id, scales = "free_x") +
   scale_fill_manual(
     values = c(
-      "V2 (<40%)" = "darkgreen",
+      "V2 (20-40%)" = "darkgreen",
       "V3 (40-50%)" = "green2",
       "V4 (50-60%)" = "greenyellow",
       "V5 (60-70%)" = "yellow",
@@ -1546,7 +1592,6 @@ ggplot(plot_data, aes(x = week)) +
     fill = "Relative Velocity Band"
   ) +
   theme_classic()
-
 ```
 
 
@@ -1614,7 +1659,7 @@ model_injury <- glm(injury ~ pct_of_max_velocity,
 summary(model_injury)
 ```
 Simple model
-Each 1 percentage point increase in pct_of_max_velocity increases the log-odds of injury by 0.0106.
+Each 1 percentage point increase in pct_of_max_velocity increases the log-odds of injury by 0.00923.
 Not significant.
 
 
@@ -1686,8 +1731,8 @@ t_test <- t.test(
 print(t_test)
 ```
 Group 1 (injury) mean = 86.55
-Group 2 (non-injury) mean = 85.49
-While the mean % of max velocity is higher for the injury group, the difference is small and not statistcally significant. (high p-value, 0.6)
+Group 2 (non-injury) mean = 85.74
+While the mean % of max velocity is higher for the injury group, the difference is small and not statistcally significant. (high p-value, 0.69)
 
 
 ```{r}  
@@ -1995,9 +2040,10 @@ weekly_90pct <- all_combinations %>%
   left_join(weekly_hits, by = c("anon_id", "week")) %>%
   mutate(count_90pct = replace_na(count_90pct, 0))
 
+# See breakdown of counts of # of times >90
 distrubution <- weekly_90pct %>%
   count(count_90pct) %>%
-  arrange(desc(n))  # Optional: sort from most to least common
+  arrange(desc(n))
 ```
 
 ```{r}
@@ -2052,19 +2098,19 @@ injury_summary <- weekly_90pct_injuries %>%
 
 ggplot(injury_summary, aes(x = factor(count_90pct), y = total_injuries)) +
   geom_col(fill = "#CFB87C") +
+  geom_text(aes(label = total_injuries), vjust = -0.3, size = 4) +
   labs(
     x = "Weekly >90% Sprint Count",
     y = "Total Injuries",
-    title = "Total Injury Weeks by Weekly Sprint Count"
+    title = "Injuries by >90% Sprint Count in the Week of Injury"
   ) +
   theme_classic()
-
 ```
 
 ```{r}
-# Injury rate table for current week counts
+# Injury rate table for week of injury counts
 injury_rate_table <- weekly_90pct_injuries %>%
-  group_by(count_90pct) %>%                      # Group by sprint count
+  group_by(count_90pct) %>%
   summarise(
     total_weeks = n(),                           # Total weeks with this count
     injury_weeks = sum(injury == 1),             # How many had injury that week
@@ -2072,6 +2118,30 @@ injury_rate_table <- weekly_90pct_injuries %>%
   ) %>%
   arrange(desc(injury_rate))
 injury_rate_table
+```
+
+
+```{r}
+# Summarize injuries and total weeks by total sprint counts over last 2 weeks
+injury_summary_2week <- weekly_90pct_injuries %>%
+  mutate(sum_last2weeks = replace_na(sum_last2weeks, 0)) %>%
+  group_by(sum_last2weeks) %>%
+  summarise(
+    total_injuries = sum(injury),
+    total_weeks = n()
+  )
+
+# Plot total injuries by total sprint counts over last 2 weeks
+ggplot(injury_summary_2week, aes(x = factor(sum_last2weeks), y = total_injuries)) +
+  geom_col(fill = "#CFB87C") +
+  geom_text(aes(label = total_injuries), vjust = -0.3, size = 4) +
+  labs(
+    x = "Total >90% Sprint Counts Over Last 2 Weeks",
+    y = "Total Injuries",
+    title = "Injuries by Total >90% Sprint Counts Over the Last Two Weeks"
+  ) +
+  theme_classic()
+```
 
 # Table for counts over last few weeks
 weekly_90pct_injuries <- weekly_90pct_injuries %>%
@@ -2097,21 +2167,21 @@ injury_rate_by_group <- weekly_90pct_injuries %>%
 injury_rate_by_group
 ```
 Current week counts:
-Injuries increase slightly from 0-3 counts with 3 having the highest injury rate of 1.163%. 4 and 5 counts have no injuries but a low sample size.
+Injuries increase slightly from 0-3 counts with 3 having the highest injury rate of 2.0%. 4 and 5 counts have no injuries but a low sample size.
 
 Counts over last few weeks (Grouped):
 High counts had no injuries
-Moderate counts had the highest injury rate (0.96%)
-Low counts had a injury rate of 0.65%
+Moderate counts had the highest injury rate (1.52%)
+Low counts had a injury rate of 0.74%
 
-Injury rates increased from low counts (<1) injury rate of 0.65% to moderate counts (1-2) injury rate of 0.96% then dropped to 0% for high counts (2+). However, high counts have a small sample size (143), so the rate may be unstable.
+Injury rates increased from low counts (<1) injury rate of 0.74% to moderate counts (1-2) injury rate of 1.52% then dropped to 0% for high counts (2+). However, high counts have a small sample size (78), so the rate may be unstable.
 
 ```{r}
 # Create a contingency table manually
 injury_table <- matrix(c(
-  11, 1699,   # Low: injured, not injured
-  6, 627,     # Moderate: injured, not injured
-  0, 143      # High: injured, not injured
+  10, 1343,   # Low: injured, not injured
+  6, 395,     # Moderate: injured, not injured
+  0, 78      # High: injured, not injured
 ), nrow = 3, byrow = TRUE)
 
 # Add row and column names for clarity
@@ -2124,7 +2194,7 @@ fisher_result <- fisher.test(injury_table)
 # View the result
 print(fisher_result)
 ```
-Our p-value of 0.56 means that there is no statically significance association between our sprint load groups and injury. 
+Our p-value of 0.33 means that there is no statically significance association between our sprint load groups and injury. 
 Injury events are pretty rare overall in our dataset, making it hard to detect subtle differences.
 
 ```{r}
@@ -2144,8 +2214,6 @@ t.test(change_last2weeks ~ injury, data = weekly_90pct_injuries, var.equal = FAL
 
 # Sum over last 2 weeks
 t.test(sum_last2weeks ~ injury, data = weekly_90pct_injuries, var.equal = FALSE)
-
-
 ```
 
 ```{r}
