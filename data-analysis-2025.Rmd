@@ -32,7 +32,6 @@ Historical_Running <- read_csv("data-sets/data-sets-uncompressed/data-sets-compr
 
 #loading in the Incident Report to look at HSIs
 Incident_Report <- read_csv("data-sets/data-sets-uncompressed/data-sets-compressed/Running Imbalance and Speed/Incident Report FB IDs.csv")
-
 ```
 
 ```{r Cleaning Catapult_Session}
