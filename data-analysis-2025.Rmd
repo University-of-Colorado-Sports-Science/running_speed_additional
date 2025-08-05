@@ -414,9 +414,20 @@ weekly_90_counts <- Catapult_Session_clean %>%
 mean_val <- round(mean(weekly_90_counts$weekly_hits), 1)
 
 ggplot(weekly_90_counts, aes(x = week, y = weekly_hits)) +
+   # Add shaded area for season
+  annotate("rect",
+           xmin = as.Date("2024-08-29"),
+           xmax = as.Date("2024-12-28"),
+           ymin = -Inf, ymax = Inf,
+           alpha = 0.2, fill = "gray") +
   geom_line(color = "#CFB87C", linewidth = 1) +
   geom_point(color = "#000000") +
   geom_smooth(method = "loess", se = FALSE, color = "#565A5C", linetype = "dashed", linewidth = 0.6) +
+  # Monthly x-axis
+  scale_x_date(
+    date_breaks = "1 month",
+    date_labels = "%b\n%Y"
+  ) +
   labs(title = "Weekly Count of Players Reaching ≥ 90% of Max Velocity",
        subtitle = paste0("Week Average: ", mean_val),
        x = "Week", y = "Times reached ≥ 90%") +
@@ -2366,6 +2377,51 @@ No t-tests or models revealed any insights.
 
 
 It is important to note that the number of injury events observed in the dataset is relatively low. As a result, the statistical power to detect significant differences in injury rates between groups is limited. This low event count increases the likelihood of a Type II error (failing to detect a true effect), and thus, non-significant results should be interpreted with caution. Future studies with larger sample sizes or more injury occurrences are needed to better assess the relationship between workload and injury risk.
+
+```{r}
+# Take graph from question 1 and add when injuries happen
+
+# >90% counts for each week instead of each day. Will be a little less noisy than the daily
+weekly_90_counts <- Catapult_Session_clean %>%
+  filter(Date >= as.Date("2024-06-30") & Date <= as.Date("2025-07-01")) %>%
+  filter(Hit.90.Percent.Max == "Yes") %>%
+  distinct(anon_id, Date) %>%
+  mutate(week = floor_date(Date, unit = "week")) %>%
+  group_by(week) %>%
+  summarise(weekly_hits = n())
+
+
+ggplot(weekly_90_counts, aes(x = week, y = weekly_hits)) +
+  # Add shaded area for season
+  annotate("rect",
+           xmin = as.Date("2024-08-29"),
+           xmax = as.Date("2024-12-28"),
+           ymin = -Inf, ymax = Inf,
+           alpha = 0.2, fill = "gray") +
+  geom_line(color = "#CFB87C", linewidth = 1) +
+  geom_point(color = "#000000") +
+  geom_smooth(method = "loess", se = FALSE, color = "#565A5C", linetype = "dashed", linewidth = 0.6) +
+  # Injury markers
+  geom_vline(data = injury_weeks, aes(xintercept = week),
+             color = "red", linetype = "dashed", linewidth = 0.6) +
+  # Plot from Q1
+  geom_line(color = "#CFB87C", linewidth = 1) +
+  geom_point(color = "#000000") +
+  geom_smooth(method = "loess", se = FALSE, color = "#565A5C", linetype = "dashed", linewidth = 0.6) +
+
+  # Monthly x-axis
+  scale_x_date(
+    date_breaks = "1 month",
+    date_labels = "%b\n%Y"
+  ) +
+
+  labs(
+    title = "Weekly Count of Players Reaching ≥ 90% of Max Velocity with Injuries",
+    subtitle = paste0("Week Average: ", mean_val),
+    x = "Month", y = "Times reached ≥ 90%"
+  ) +
+  theme_classic()
+```
 
 
 
