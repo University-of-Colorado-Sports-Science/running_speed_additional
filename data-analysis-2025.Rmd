@@ -8,7 +8,7 @@ output: html_notebook
 #Author Date: 7/14/2025
 #Purpose: The purpose of this notebook is to house all data set transformation, cleansing, visualization, statistical analysis, and note-taking for the 2025 CU Athletic Department Sports Science Internship Program
 
-#LAST UPDATED: 7/29/2025
+#LAST UPDATED: 8/5/2025
 
 #Including helpful libraries
 library(tidyverse)
@@ -32,7 +32,6 @@ Historical_Running <- read_csv("data-sets/data-sets-uncompressed/data-sets-compr
 
 #loading in the Incident Report to look at HSIs
 Incident_Report <- read_csv("data-sets/data-sets-uncompressed/data-sets-compressed/Running Imbalance and Speed/Incident Report FB IDs.csv")
-
 ```
 
 ```{r Cleaning Catapult_Session}
@@ -311,7 +310,7 @@ plots_by_group <- lapply(positions_groups, function(pos) {
 The skill position group has the highest average times reached ≥90% Max with 17.1, then combo with 9.3, then bigs with 8.9.
 
 ```{r}
-# Make facet plot so that it fits on the presentation slides better.
+# Make facet plot for position groups so that it fits on the presentation slides better.
 
 # Calculate averages for each group and the team
 group_avgs <- hit_90_counts %>%
@@ -426,7 +425,7 @@ ggplot(weekly_90_counts, aes(x = week, y = weekly_hits)) +
 
 
 ```{r}
-# Bar chart of weekly >90% counts
+# Bar chart of weekly ≥90% counts
 
 ggplot(weekly_90_counts, aes(x = week, y = weekly_hits)) +
   geom_col(fill = "#CFB87C", color = "#565A5C", width = 5) +
@@ -725,13 +724,30 @@ V8 <- weekly_velocity_efforts %>%
   filter(pct_V8 > 0)
 
 # Plot
-ggplot(V8, aes(x = pct_V8, y = pct_of_max_velocity_change)) +
+ggplot(V8, aes(x = pct_V8, y = pct_of_max_velocity)) +
   geom_point(alpha = 0.4) +
   geom_smooth(method = "loess", se = TRUE, color = "darkred") +
   labs(
-    title = "Change in Max Speed vs. V8 Band Usage",
+    title = "Percent of Max Velocity vs. V8 Band Usage",
     x = "Percent of Total Effort in V8 Band (%)",
-    y = "Change in Max Speed from Prior Week (%)"
+    y = "Percent of Max Velocity"
+  ) +
+  theme_classic()
+
+
+# Scatterplot for V2 band effort vs. Percent of Max Velocity
+# Create V2 data set that only includes when someone was in V2 for a given week
+V2 <- weekly_velocity_efforts %>%
+  filter(pct_V2 > 0)
+
+# Plot
+ggplot(V2, aes(x = pct_V2, y = pct_of_max_velocity)) +
+  geom_point(alpha = 0.4) +
+  geom_smooth(method = "loess", se = TRUE, color = "darkred") +
+  labs(
+    title = "Percent of Max Velocity vs. V2 Band Usage",
+    x = "Percent of Total Effort in V2 Band (%)",
+    y = "Percent of Max Velocity"
   ) +
   theme_classic()
 ```
@@ -1623,7 +1639,7 @@ unique(injuries_and_running$anon_id) %>%
       geom_point(aes(y = pct_of_max_velocity), color = "black", size = 2) +
       scale_fill_manual(
         values = c(
-          "V2 (<40%)" = "darkgreen",
+          "V2 (20-40%)" = "darkgreen",
           "V3 (40-50%)" = "green2",
           "V4 (50-60%)" = "greenyellow",
           "V5 (60-70%)" = "yellow",
@@ -1732,9 +1748,9 @@ print(t_test)
 ```
 Group 1 (injury) mean = 86.55
 Group 2 (non-injury) mean = 85.74
-While the mean % of max velocity is higher for the injury group, the difference is small and not statistcally significant. (high p-value, 0.69)
+While the mean % of max velocity is higher for the injury group, the difference is small and not statistically significant. (high p-value, 0.69)
 
-
+Plots of Percent of Max Velocity in that week
 ```{r}  
 # Plot of % Max Velocity during injury and non injury weeks
 ggplot(injuries_and_running_clean, aes(x = week, y = pct_of_max_velocity)) +
@@ -1859,7 +1875,7 @@ ggplot(injury_week_prior, aes(x = week, y = lag1_pct_of_max_velocity)) +
 # Bar chart for week prior to injury % Max
 ggplot(injury_week_prior, aes(x = factor(injury_event), y = lag1_pct_of_max_velocity)) +
   geom_col(fill = "#CFB87C") +
-  geom_text(aes(label = round(pct_of_max_velocity, 1)),  # round to 1 decimal place
+  geom_text(aes(label = round(lag1_pct_of_max_velocity, 1)),  # round to 1 decimal place
             vjust = -0.5, size = 2.75) +
   labs(
     title = "Percent of Max Velocity the Week Before Injury",
@@ -1872,13 +1888,12 @@ ggplot(injury_week_prior, aes(x = factor(injury_event), y = lag1_pct_of_max_velo
 ```
 
 ```{r}
-# T-test to compare lag_pct_of_max_velocity (the week before) between injury and non injury
+# T-test to compare lag_pct_of_max_velocity (max velocity the week before) between injury and non injury
 t_test_week_prior <- t.test(
   lag1_pct_of_max_velocity ~ injury, 
   data = week_prior,
   var.equal = FALSE)
 print(t_test_week_prior)
-
 
 # T-test to compare change between current week and last week
 t_test_change_lastweek <- t.test(
@@ -1909,17 +1924,21 @@ t_test_sum_last3weeks <- t.test(
   var.equal = FALSE)
 print(t_test_sum_last3weeks)
 ```
-Mean % of max week before: injury = 86.6, non-injury = 85.9.
-Not sig (pvalue = 0.79)
+Mean % of max week before: injury = 86.6, non-injury = 86.2.
+Not sig, pvalue = 0.87
 
-Mean % change week before (current week % - last week %): injury = -0.057, non-injury = -0.49
-Not sig (p-value = 0.89)
+Mean % change week before (current week % - last week %): injury = -0.057, non-injury = -0.50
+Not sig, p-value = 0.89
 
-Mean % change of last 2 weeks (current - 2 weeks ago): injury = -2.68, non-injury = -0.65
+Mean % change of last 2 weeks (current - 2 weeks ago): injury = -2.68, non-injury = -0.66
 Not sig, p-value = 0.44
 
-Mean % change of last 3 weeks (current - 3 weeks ago): injury = -0.6, non-injury = -0.8.
+Mean % change of last 3 weeks (current - 3 weeks ago): injury = -0.60, non-injury = -0.81.
 Not sig, p-value = 0.95
+
+Sum of current, 1, 2, 3 weeks before:
+injury = 347.86, non-injury = 343.51
+Not sig, p-value = 0.41
 
 ```{r}
 # Look into the last two weeks
@@ -2120,62 +2139,6 @@ injury_rate_table <- weekly_90pct_injuries %>%
 injury_rate_table
 ```
 
-
-```{r}
-# Summarize injuries and total weeks by total sprint counts over last 2 weeks
-injury_summary_2week <- weekly_90pct_injuries %>%
-  mutate(sum_last2weeks = replace_na(sum_last2weeks, 0)) %>%
-  group_by(sum_last2weeks) %>%
-  summarise(
-    total_injuries = sum(injury),
-    total_weeks = n()
-  )
-
-# Plot total injuries by total sprint counts over last 2 weeks
-ggplot(injury_summary_2week, aes(x = factor(sum_last2weeks), y = total_injuries)) +
-  geom_col(fill = "#CFB87C") +
-  geom_text(aes(label = total_injuries), vjust = -0.3, size = 4) +
-  labs(
-    x = "Total >90% Sprint Counts Over Last 2 Weeks",
-    y = "Total Injuries",
-    title = "Injuries by Total >90% Sprint Counts Over the Last Two Weeks"
-  ) +
-  theme_classic()
-```
-
-# Table for counts over last few weeks
-weekly_90pct_injuries <- weekly_90pct_injuries %>%
-  mutate(avg2_group = round(avg_last2weeks, 1))
-
-# Create binned groups: Low (0–1), Moderate (1–2), High (2+)
-weekly_90pct_injuries <- weekly_90pct_injuries %>%
-  mutate(load_group = case_when(
-    avg_last2weeks < 1 ~ "Low (<1)",
-    avg_last2weeks >= 1 & avg_last2weeks < 2 ~ "Moderate(1-2)",
-    avg_last2weeks >= 2 ~ "High (2+)"
-  ))
-
-# Create a table of counts and injury rates by group
-injury_rate_by_group <- weekly_90pct_injuries %>%
-  group_by(load_group) %>%
-  summarise(
-    total_weeks = n(),
-    injury_weeks = sum(injury == 1),
-    injury_rate = injury_weeks / total_weeks
-  ) %>%
-  arrange(load_group)  # optional: order Low, Moderate, High
-injury_rate_by_group
-```
-Current week counts:
-Injuries increase slightly from 0-3 counts with 3 having the highest injury rate of 2.0%. 4 and 5 counts have no injuries but a low sample size.
-
-Counts over last few weeks (Grouped):
-High counts had no injuries
-Moderate counts had the highest injury rate (1.52%)
-Low counts had a injury rate of 0.74%
-
-Injury rates increased from low counts (<1) injury rate of 0.74% to moderate counts (1-2) injury rate of 1.52% then dropped to 0% for high counts (2+). However, high counts have a small sample size (78), so the rate may be unstable.
-
 ```{r}
 # Create a contingency table manually
 injury_table <- matrix(c(
@@ -2196,6 +2159,124 @@ print(fisher_result)
 ```
 Our p-value of 0.33 means that there is no statically significance association between our sprint load groups and injury. 
 Injury events are pretty rare overall in our dataset, making it hard to detect subtle differences.
+
+
+```{r}
+# Summarize injuries and total weeks by total sprint counts over last 2 weeks
+injury_summary_2week <- weekly_90pct_injuries %>%
+  mutate(sum_last2weeks = replace_na(sum_last2weeks, 0)) %>%
+  group_by(sum_last2weeks) %>%
+  summarise(
+    total_injuries = sum(injury == 1),
+    total_weeks = n(),
+    injury_rate = (total_injuries / total_weeks) * 100
+  ) %>%
+  arrange(desc(injury_rate))
+injury_summary_2week
+
+# Plot total injuries by total sprint counts over last 2 weeks
+ggplot(injury_summary_2week, aes(x = factor(sum_last2weeks), y = total_injuries)) +
+  geom_col(fill = "#CFB87C") +
+  geom_text(aes(label = total_injuries), vjust = -0.3, size = 4) +
+  labs(
+    x = "Total >90% Sprint Counts Over Last 2 Weeks",
+    y = "Total Injuries",
+    title = "Injuries by Total >90% Sprint Counts Over the Last Two Weeks"
+  ) +
+  theme_classic()
+
+# Plot injury rate
+ggplot(injury_summary_2week, aes(x=factor(sum_last2weeks), y = injury_rate)) +
+  geom_col(fill = "#CFB87C") +
+  geom_text(aes(label = round(injury_rate, 3)), vjust = -0.3, size = 4) +
+  labs(
+    x = "Total >90% Sprint Counts Over Last 2 Weeks",
+    y = "Injury Rate",
+    title = "Injurie Rate by Total >90% Sprint Counts Over the Last Two Weeks"
+  ) +
+  theme_classic()
+```
+
+```{r}
+# Table for counts over last few weeks
+weekly_90pct_injuries <- weekly_90pct_injuries %>%
+  mutate(avg2_group = round(avg_last2weeks, 1))
+
+# Create binned groups: Low (0–1), Moderate (1–2), High (2+)
+weekly_90pct_injuries <- weekly_90pct_injuries %>%
+  mutate(load_group = case_when(
+    avg_last2weeks < 1 ~ "Low (<1)",
+    avg_last2weeks >= 1 & avg_last2weeks < 2 ~ "Moderate(1-2)",
+    avg_last2weeks >= 2 ~ "High (2+)"
+  ))
+
+# Create a table of counts and injury rates by group
+injury_rate_by_group <- weekly_90pct_injuries %>%
+  group_by(load_group) %>%
+  summarise(
+    total_weeks = n(),
+    injury_weeks = sum(injury == 1),
+    injury_rate = injury_weeks / total_weeks
+  ) %>%
+  arrange(load_group)
+injury_rate_by_group
+
+# Create a table of counts and injury rates
+injury_rate_2weekavg <- weekly_90pct_injuries %>%
+  group_by(avg2_group) %>%
+  summarise(
+    total_weeks = n(),
+    injuries = sum(injury == 1),
+    injury_rate = (injuries / total_weeks) * 100
+  ) %>%
+  arrange(desc(injury_rate))
+injury_rate_2weekavg
+```
+Current week counts:
+Injuries increase slightly from 0-3 counts with 3 having the highest injury rate of 2.0%. 4 and 5 counts have no injuries but a low sample size.
+
+Counts over last few weeks (Grouped):
+High counts had no injuries
+Moderate counts had the highest injury rate (1.52%)
+Low counts had a injury rate of 0.74%
+
+Injury rates increased from low counts (<1) injury rate of 0.74% to moderate counts (1-2) injury rate of 1.52% then dropped to 0% for high counts (2+). However, high counts have a small sample size (78), so the rate may be unstable.
+
+```{r}
+weekly_90pct_injuries <- weekly_90pct_injuries %>%
+  mutate(workload_group = case_when(
+    avg2_group < 0.5 ~ "Low (<0.5)",
+    avg2_group >= 0.5 ~ "High (>0.5)",
+    TRUE ~ NA_character_
+  ))
+
+injury_rate_grouped <- weekly_90pct_injuries %>%
+  group_by(workload_group) %>%
+  summarise(
+    total_weeks = n(),
+    injuries = sum(injury == 1, na.rm = TRUE),
+    injury_rate = (injuries / total_weeks) * 100
+  )
+injury_rate_grouped
+
+
+```
+
+Average over the last three weeks. The injury rate is higher when athletes average over 0.5 over 90 percent max sprint counts. 
+
+```{r}
+# Make contingency table
+contingency <- matrix(c(8, 716, 8, 1084), nrow = 2, byrow = TRUE)
+colnames(contingency) <- c("Injury", "NoInjury")
+rownames(contingency) <- c("High", "Low")
+
+# Run test
+chisq.test(contingency)
+```
+Since our p-value of 0.56>0.05, there is no statistically significant difference in injury rates between the High and Low >90 count groups.
+The chi-square test of the injury rates of average >90 counts of the last 3 weeks (either high > 0.5, or low < 0.5) showed no significant difference in injury rates between these groups.
+
+
 
 ```{r}
 # T-tests:
@@ -2227,6 +2308,7 @@ table_exposure <- table(weekly_90pct_injuries$sprint_exposure_bin, weekly_90pct_
 # Fisher's Exact Test
 fisher.test(table_exposure)
 ```
+
 ```{r}
 # Create top quartile exposure
 cutoff <- quantile(weekly_90pct_injuries$count_90pct, 0.75, na.rm = TRUE)
@@ -2281,53 +2363,10 @@ ggplot(weekly_90pct_injuries, aes(x = change_lastweek, y = injury)) +
 
 No t-tests or models revealed any insights. 
 
-Separate sprint counts into groups
 
 
-```{r}
-# Create groups for number of sprint counts
+It is important to note that the number of injury events observed in the dataset is relatively low. As a result, the statistical power to detect significant differences in injury rates between groups is limited. This low event count increases the likelihood of a Type II error (failing to detect a true effect), and thus, non-significant results should be interpreted with caution. Future studies with larger sample sizes or more injury occurrences are needed to better assess the relationship between workload and injury risk.
 
-summary(weekly_90pct_injuries$count_90pct)
-
-weekly_90pct_injuries <- weekly_90pct_injuries %>%
-  mutate(
-    sprint_group = case_when(
-      count_90pct == 0          ~ "Low",
-      count_90pct >= 1 & count_90pct <= 7  ~ "Moderate",
-      count_90pct >= 8          ~ "High",
-      TRUE                      ~ NA_character_
-    )
-  )
-
-# check counts
-table(weekly_90pct_injuries$sprint_group, useNA = "ifany")
-```
-
-```{r}
-group_model <- glm(
-  injury ~ sprint_group,
-  data = weekly_90pct_injuries,
-  family = "binomial"
-)
-
-summary(group_model)
-```
-
-```{r}
-weekly_90pct_injuries %>%
-  group_by(sprint_group) %>%
-  summarise(
-    injury_rate = mean(injury, na.rm = TRUE),
-    n = n()
-  ) %>%
-  ggplot(aes(x = sprint_group, y = injury_rate, fill = sprint_group)) +
-  geom_col() +
-  geom_text(aes(label = scales::percent(injury_rate, accuracy = 0.1)), vjust = -0.5) +
-  labs(title = "Injury Rate by Sprint Group",
-       x = "Sprint Group",
-       y = "Injury Rate") +
-  theme_minimal()
-```
 
 
 ```{r removing unnecessary objects for running imbalance analysis}
