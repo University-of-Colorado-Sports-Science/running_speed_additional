@@ -728,36 +728,36 @@ weekly_velocity_efforts <- weekly_velocity_efforts %>%
 ```
 
 ```{r}
-# Scatterplot with smoothing line for V8 band effort
+# Facet plot to show band usage vs. percent max
 
-# Create V8 data set that only includes when someone was in V8 for a given week
-V8 <- weekly_velocity_efforts %>%
-  filter(pct_V8 > 0)
+# Reshape first, then filter rows where effort is > 0 for that specific band
+velocity_long <- weekly_velocity_efforts %>%
+  select(pct_of_max_velocity, pct_V2, pct_V3, pct_V4, pct_V5, pct_V6, pct_V7, pct_V8) %>%
+  pivot_longer(
+    cols = starts_with("pct_V"),
+    names_to = "band",
+    values_to = "pct_band_effort"
+  ) %>%
+  filter(pct_band_effort > 0)  # Only filters the relevant band effort
+
+# Clean up band names for labels
+velocity_long$band <- recode(velocity_long$band,
+                             pct_V2 = "V2 Band",
+                             pct_V3 = "V3 Band",
+                             pct_V4 = "V4 Band",
+                             pct_V5 = "V5 Band",
+                             pct_V6 = "V6 Band",
+                             pct_V7 = "V7 Band",
+                             pct_V8 = "V8 Band")
 
 # Plot
-ggplot(V8, aes(x = pct_V8, y = pct_of_max_velocity)) +
+ggplot(velocity_long, aes(x = pct_band_effort, y = pct_of_max_velocity)) +
   geom_point(alpha = 0.4) +
   geom_smooth(method = "loess", se = TRUE, color = "darkred") +
+  facet_wrap(~ band) +
   labs(
-    title = "Percent of Max Velocity vs. V8 Band Usage",
-    x = "Percent of Total Effort in V8 Band (%)",
-    y = "Percent of Max Velocity"
-  ) +
-  theme_classic()
-
-
-# Scatterplot for V2 band effort vs. Percent of Max Velocity
-# Create V2 data set that only includes when someone was in V2 for a given week
-V2 <- weekly_velocity_efforts %>%
-  filter(pct_V2 > 0)
-
-# Plot
-ggplot(V2, aes(x = pct_V2, y = pct_of_max_velocity)) +
-  geom_point(alpha = 0.4) +
-  geom_smooth(method = "loess", se = TRUE, color = "darkred") +
-  labs(
-    title = "Percent of Max Velocity vs. V2 Band Usage",
-    x = "Percent of Total Effort in V2 Band (%)",
+    title = "Percent of Max Velocity vs. Band Usage",
+    x = "Percent of Total Effort in Band (%)",
     y = "Percent of Max Velocity"
   ) +
   theme_classic()
@@ -1039,12 +1039,14 @@ round(cor_combo, 2)
 
 
 ```{r}
+# Predicting Weekly Max Velocity
+
 # Reduce for better modeling
 bigs <- bigs %>%
   mutate(
-    low_band = (mean_lag_V2 + mean_lag_V3) / 2,
-    mid_band = (mean_lag_V4 + mean_lag_V5 + mean_lag_V6) / 3,
-    high_band = (mean_lag_V7 + mean_lag_V8) / 2
+    low_band = (mean_V2 + mean_V3) / 2,
+    mid_band = (mean_V4 + mean_V5 + mean_V6) / 3,
+    high_band = (mean_V7 + mean_V8) / 2
   )
 model_bigs_simple <- lm(mean_weekly_max_velocity ~ low_band + mid_band + high_band, data = bigs)
 summary(model_bigs_simple)
@@ -1053,9 +1055,9 @@ summary(model_bigs_simple)
 # Skill Group
 skill <- skill %>%
   mutate(
-    low_band = (mean_lag_V2 + mean_lag_V3 + mean_lag_V4) / 3,
-    mid_band = (mean_lag_V5 + mean_lag_V6) / 2,
-    high_band = (mean_lag_V7 + mean_lag_V8) / 2
+    low_band = (mean_V2 + mean_V3 + mean_V4) / 3,
+    mid_band = (mean_V5 + mean_V6) / 2,
+    high_band = (mean_V7 + mean_V8) / 2
   )
 model_skill_simple <- lm(mean_weekly_max_velocity ~ low_band + mid_band + high_band, data = skill)
 summary(model_skill_simple)
@@ -1063,25 +1065,62 @@ summary(model_skill_simple)
 # Combo group
 combo <- combo %>%
   mutate(
-    low_band = (mean_lag_V2 + mean_lag_V3) / 2,
-    mid_band = (mean_lag_V4 + mean_lag_V5) / 2,
-    high_band = (mean_lag_V6 + mean_lag_V7 + mean_lag_V8) / 3
+    low_band = (mean_V2 + mean_V3) / 2,
+    mid_band = (mean_V4 + mean_V5) / 2,
+    high_band = (mean_V6 + mean_V7 + mean_V8) / 3
   )
 model_combo_simple <- lm(mean_weekly_max_velocity ~ low_band + mid_band + high_band, data = combo)
 summary(model_combo_simple)
 ```
 Bigs model:
-  Statistically significant overall and explains around 33% of the variation of max velocity. The low band is significantly negative. Every unit increase in the low band results in a decrease in max velocity. The mid and high bands are not significant but the high band shows a positive trend.
-  Based on this model, for bigs, more low-band effort may reduce weekly top speed, possibly indicating underexposure of high speeds. High-band efforts might help, but aren’t clearly impactful in this group.
+  The model is statistically significant and explains around 69% of the variation in weekly max velocity. The low band is negatively associated, mid band is positively associated, and high band had the strongest positive affect.
+  Higher exposure to high-speed sprinting is linked to higher top speeds in bigs, while low-speed work may hinder performance.
 
 Skill model:
-  Almost significant. Low band has a negative effect, mid band has a positive effect, and high band is not significant. 
-  Based on this model, for skill players, more low-intensity exposure seems detrimental to max speed, while moderate band (V5–V6) exposure may enhance it.
+  This model explains 33% of variance in weekly max velo. Low band is negatively associated, mid band is positively associated and high band was not significant.
+  Moderate-speed exposure appears most beneficial for skill players, while excessive low-intensity work may reduce top-end performance.
   
 Combo model:
-  Model is not significant. The combo position group contains many different type of positions (QBs, RBs, TEs, LBs) with different movement and velocities. This variability may obscure relationships.
+  This model explains 36% of variance. Only high band is significant, which had a positive effect.
   
-Across groups, low-band exposure is consistently negatively related to peak weekly speed — suggesting that too much low-intensity work may reduce the capacity to reach high speeds.
+Models are not super strong. Could be because of absolute bands.
+Will test later when modeling relative bands. Must use weekly mac velocity and not pct_of_max since relative bands are already based on % of max.
+
+```{r}
+# Reduce for better modeling
+bigs <- bigs %>%
+  mutate(
+    low_band = (mean_V2 + mean_V3) / 2,
+    mid_band = (mean_V4 + mean_V5 + mean_V6) / 3,
+    high_band = (mean_V7 + mean_V8) / 2
+  )
+model_bigs_simple <- lm(mean_pct_max_velocity ~ low_band + mid_band + high_band, data = bigs)
+summary(model_bigs_simple)
+
+
+# Skill Group
+skill <- skill %>%
+  mutate(
+    low_band = (mean_V2 + mean_V3 + mean_V4) / 3,
+    mid_band = (mean_V5 + mean_V6) / 2,
+    high_band = (mean_V7 + mean_V8) / 2
+  )
+model_skill_simple <- lm(mean_pct_max_velocity ~ low_band + mid_band + high_band, data = skill)
+summary(model_skill_simple)
+
+# Combo group
+combo <- combo %>%
+  mutate(
+    low_band = (mean_V2 + mean_V3) / 2,
+    mid_band = (mean_V4 + mean_V5 + mean_V6) / 3,
+    high_band = (mean_V7 + mean_V8) / 2
+  )
+model_combo_simple <- lm(mean_pct_max_velocity ~ low_band + mid_band + high_band, data = combo)
+summary(model_combo_simple)
+```
+This model normalizes weekly top speed as a percentage of each athlete’s all-time maximum, allowing for comparisons across players with different physical ceilings. Model fit improved slightly across all position groups, with R² values increasing (e.g., 0.40 for Bigs). Like the previous model, low-band effort remains a strong negative predictor of weekly peak output. This approach is most useful when evaluating relative effort, consistency, or comparing across groups.
+Do not use pct_of_max when modeling for relative bands.
+
 
 ## Are relative efforts and bands more advantageous than the absolute bands provided?
 
@@ -1297,6 +1336,7 @@ unique(clean_anons$anon_id) %>%
 
 ```{r}
 # Create relative bands for all athletes
+# Last code chunk did not store these bands for each athlete and only used it for plotting function
 
 # Define the velocity band labels
 band_levels <- c("V2 (20-40%)", "V3 (40-50%)", "V4 (50-60%)", "V5 (60-70%)",
@@ -1349,6 +1389,9 @@ weekly_max_pct <- Catapult_Session_clean %>%
 relative_bands <- weekly_sprint_exposure %>%
   left_join(weekly_max_pct, by = c("anon_id", "week"))
 
+relative_bands <- relative_bands %>%
+  left_join(player_positions, by = "anon_id")
+
 # Convert to long for plotting
 relative_bands_long <- relative_bands %>%
   pivot_longer(
@@ -1362,29 +1405,99 @@ relative_bands_long <- relative_bands %>%
 ```
 
 ```{r}
-COMBO <- c("QB","LB","TE","RB", "ILB")
-BIG <- c("OL", "DL", "DE", "DT")
-SKILL <- c("WR", "DB", "CB", "SAF")
-Positions <- c("COMBO", "BIG", "SKILL")
+# Calculate relative Bands
 
-weekly_sprint_exposure <- left_join(weekly_sprint_exposure, player_positions, by = "anon_id", relationship = "many-to-many")
+relative_bands_data <- Catapult_Session_clean %>%
+  filter(
+    Date >= as.Date("2024-06-30") & Date <= as.Date("2025-07-01"),
+    Maximum.Velocity != 0,
+    !is.na(Maximum.Velocity)
+  ) %>%
+   mutate(
+    week = floor_date(Date, unit = "week"),
+    pct_of_max = (Maximum.Velocity / Player.Max.Velocity) * 100,
+    relative_band = cut(
+      pct_of_max,
+      breaks = c(20, 40, 50, 60, 70, 80, 90, 100.1),
+      labels = band_levels,
+      right = TRUE,  # will include 100
+      include.lowest = TRUE
+    ),
+    relative_band = factor(relative_band, levels = band_levels)
+  ) %>%
+  filter(!is.na(relative_band)) %>%
+  group_by(anon_id, week, relative_band) %>%
+  summarise(effort_count = n(), .groups = "drop") %>%
+  group_by(anon_id, week) %>%
+  mutate(
+    total_efforts = sum(effort_count),
+    pct_effort = (effort_count / total_efforts) * 100
+  ) %>%
+  ungroup() %>%
+  select(anon_id, week, relative_band, pct_effort) %>%
+  pivot_wider(
+    names_from = relative_band,
+    values_from = pct_effort,
+    values_fill = 0
+  )
+  
+# Calculate weekly maxs
+weekly_max_pct <- Catapult_Session_clean %>%
+  filter(Date >= as.Date("2024-06-30") & Date <= as.Date("2025-07-01")) %>%
+  filter(Maximum.Velocity != 0, !is.na(Maximum.Velocity)) %>%
+  mutate(
+    week = floor_date(Date, unit = "week"),
+    pct_of_max = (Maximum.Velocity / Player.Max.Velocity) * 100
+  ) %>%
+  group_by(anon_id, week) %>%
+  summarise(
+    pct_of_max_velocity = max(pct_of_max, na.rm = TRUE),
+    weekly_max_velocity = max(Maximum.Velocity, na.rm = TRUE),
+    .groups = "drop"
+  )
 
-weekly_sprint_exposure <- weekly_sprint_exposure %>%
-  mutate(Position = case_when(Primary.Position %in% COMBO ~ "COMBO",
-                               Primary.Position %in% BIG ~ "BIG",
-                               Primary.Position %in% SKILL ~ "SKILL"))
+# Join
+relative_bands_data_with_max <- relative_bands_data %>%
+  left_join(weekly_max_pct, by = c("anon_id", "week"))
 
-weekly_sprint_exposure <- distinct(weekly_sprint_exposure)
+# Join to get positions
+relative_bands_data_final <- relative_bands_data_with_max %>%
+  left_join(player_positions, by = "anon_id")
 
-max_velocities <- weekly_velocity_efforts[,c("anon_id","week","pct_of_max_velocity")]
+# Position groups
+relative_bands_data_final <- relative_bands_data_final %>%
+  mutate(
+    Position_Group = case_when(
+      Primary.Position %in% c("QB", "LB", "TE", "RB") ~ "COMBO",
+      Primary.Position %in% c("OL", "DL", "DE") ~ "BIGS",
+      Primary.Position %in% c("WR", "DB", "DB, WR") ~ "SKILL",
+      TRUE ~ "OTHER"
+    )
+  ) %>%
+  filter(Position_Group != "OTHER")
 
-weekly_sprint_exposure <- left_join(weekly_sprint_exposure, max_velocities, by = c("anon_id", "week"), relationship="many-to-many")
 
+relative_bands_group_data <- relative_bands_data_final %>%
+  group_by(week, Position_Group) %>%
+  summarise(
+    mean_V2 = mean(`V2 (20-40%)`, na.rm = TRUE),
+    mean_V3 = mean(`V3 (40-50%)`, na.rm = TRUE),
+    mean_V4 = mean(`V4 (50-60%)`, na.rm = TRUE),
+    mean_V5 = mean(`V5 (60-70%)`, na.rm = TRUE),
+    mean_V6 = mean(`V6 (70-80%)`, na.rm = TRUE),
+    mean_V7 = mean(`V7 (80-90%)`, na.rm = TRUE),
+    mean_V8 = mean(`V8 (90-100%)`, na.rm = TRUE),
+    mean_weekly_max_velocity = mean(weekly_max_velocity, na.rm = TRUE),
+    mean_pct_max_velocity = mean(pct_of_max_velocity, na.rm = TRUE),
+    n_players = n()
+  ) %>%
+  ungroup()
 
+```
 
-
-sprint_exposure_big <- weekly_sprint_exposure %>%
-  filter(Position == "BIG") %>%
+```{r}
+sprint_exposure_big <- relative_bands_data_final %>%
+  filter(Position_Group == "BIGS") %>%
   group_by(week) %>%
   mutate(avg_pct_max = mean(pct_of_max_velocity),
          avg_V8 = mean(`V8 (90-100%)`),
@@ -1397,8 +1510,8 @@ sprint_exposure_big <- weekly_sprint_exposure %>%
   ungroup() %>%
   na.omit()
 
-sprint_exposure_combo <- weekly_sprint_exposure %>%
-  filter(Position == "COMBO")  %>%
+sprint_exposure_combo <- relative_bands_data_final %>%
+  filter(Position_Group == "COMBO")  %>%
   group_by(week) %>%
   mutate(avg_pct_max = mean(pct_of_max_velocity),
          avg_V8 = mean(`V8 (90-100%)`),
@@ -1411,8 +1524,8 @@ sprint_exposure_combo <- weekly_sprint_exposure %>%
   ungroup() %>%
   na.omit()
 
-sprint_exposure_skill <- weekly_sprint_exposure %>%
-  filter(Position == "SKILL")  %>%
+sprint_exposure_skill <- relative_bands_data_final %>%
+  filter(Position_Group == "SKILL")  %>%
   group_by(week) %>%
   mutate(avg_pct_max = mean(pct_of_max_velocity),
          avg_V8 = mean(`V8 (90-100%)`),
@@ -1537,6 +1650,21 @@ pc_loadings <- prcomp(preds, scale=TRUE)$rotation[,c(1,2,3)]
 pc_loadings
 ```
 
+
+```{r}
+# Model based on mean 
+
+bigs_relative <- relative_bands_group_data %>%
+  filter(Position_Group == "BIGS")
+
+skill_relative <- relative_bands_group_data %>%
+  filter(Position_Group == "SKILL")
+
+combo_relative <- relative_bands_group_data %>%
+  filter(Position_Group == "COMBO")
+
+# ADD SAME MODEL techniques as absolute bands
+```
 
 ## How does sprinting exposure (# of efforts, % max reached) relate to incidence of hamstring injuries?
 
