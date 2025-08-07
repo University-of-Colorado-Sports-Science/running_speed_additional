@@ -37,6 +37,7 @@ bar charts and computed averages for three main position groups:
 -   Skill (DBs, WRs),
 -   Bigs (OL, DL), and
 -   Combo (LBs, QBs, TEs, RBs).
+
 To no surprise, the skill group was the had the highest average (17.1), followed by 
 the combo group (9.3) while the bigs had the lowest (8.9).
 
