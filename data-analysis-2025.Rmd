@@ -2576,30 +2576,35 @@ remove(all_athletes, all_weeks, band_levels, BIG, COMBO, SKILL, injured_ids,
 
 ## Maximum Velocity Trends over Time
 ```{r}
+#taking all present IDs
 catapult_ids <- unique(Catapult_Session_clean$anon_id)
 
+#calculating each person's weeks
 Catapult_Session_clean <- Catapult_Session_clean %>%
   group_by(anon_id) %>%
   mutate(week = floor_date(Date, unit="week")) %>%
   ungroup() %>%
   group_by(anon_id, week) %>%
+  #calculating each week's maximum velocity
   mutate(Week.Max.Velocity = mean(na.omit(Session.Max.Velocity)))
 
+#empty vectors for the loop to fill
 kendalls <- rep(NA, 104)
 negative_trend <- "0"
 
-for(i in 1:104){
+for(i in 1:104){ #go through all IDs
   
   speeds <- unique(Catapult_Session_clean[Catapult_Session_clean$anon_id==catapult_ids[i],]$Week.Max.Velocity)
   weeks <- rev(1:length(speeds))
   
+  #calculate their kendall correlation coefficient
   kend <- cor(weeks, speeds, method="kendall")
   
-  if(length(speeds)>5){
-  kendalls[i] = kend
+  if(length(speeds)>5){ #if there is enough data
+  kendalls[i] = kend #save the kendall value
   
     if(kend <= -0.5){
-      negative_trend <- c(negative_trend, catapult_ids[i])
+      negative_trend <- c(negative_trend, catapult_ids[i]) #if there is a significant negative trend, store in the vector 
     }
   
   p <- ggplot(filter(Catapult_Session_clean, anon_id == catapult_ids[i]), aes(week,
@@ -2617,7 +2622,10 @@ for(i in 1:104){
   
 }
 ```
+
+
 ```{r}
+#looking at the correlations, and those outside the lines are significant
 hist(kendalls)
 abline(v=-0.5)
 abline(v=0.5) 
@@ -2784,7 +2792,7 @@ ggplot(data=Historical_Running_clean[Historical_Running_clean$anon_id %in% uninj
 
 #### Bootstrapping Differences between Injured and Uninjured Athletes
 ```{r Separating injured and uninjured into two different data sets}
-#Splitting up the data sets and calculating player variance and measurement absolute value
+#Splitting up the data sets into injured and uninjured groups and calculating player variance and measurement absolute value
 injured_data <- Historical_Running_clean[Historical_Running_clean$anon_id %in% injured_IDs,] %>%
   mutate(Player.Absolute.Dist = abs(Running.Imbalance)) %>%
   group_by(anon_id) %>%
@@ -2823,13 +2831,16 @@ for(i in 1:5000){
 
 
 ```{r Plotting results from pooled boostrapped variances}
+#making plot for the difference in pooled variance
 ggplot(data=group_variances, aes(diff_in_var)) +
   geom_histogram() +
+  #putting in 90% CI
   geom_vline(xintercept = quantile(group_variances$diff_in_var, 0.05), color= "#CFB87C") +
   geom_vline(xintercept = quantile(group_variances$diff_in_var, 0.95), color= "#CFB87C") +
   labs(x="Difference in Variance") +
   theme_minimal()
 
+#plotting bootstrapped group variances
 ggplot(data=group_variances) +
   geom_histogram(aes(injured_var), alpha = 0.75, fill ="#CFB87C") +
   geom_histogram(aes(uninjured_var), alpha = 0.75) +
@@ -2861,13 +2872,16 @@ for(i in 1:5000){
 
 
 ```{r Plotting results from averaged bootstrapped player variances}
+#plotting difference in average player variance from bootstrap
 ggplot(data = mean_player_variances, aes(diff_in_var)) +
   geom_histogram() +
+  #adding in 90% CI
   geom_vline(xintercept = quantile(mean_player_variances$diff_in_var, 0.05), color= "#CFB87C") +
   geom_vline(xintercept = quantile(mean_player_variances$diff_in_var, 0.95), color= "#CFB87C") +
   labs(title = "Difference in Estimated Average Variance for Injured and Uninjured Athletes", x="Difference in Average Variance") +
   theme_minimal()
 
+#plotting player variances from bootstrap
 ggplot(data=mean_player_variances) +
   geom_histogram(aes(injured_var), alpha = 0.75, fill ="#CFB87C") +
   geom_histogram(aes(uninjured_var), alpha = 0.75) +
@@ -2900,13 +2914,17 @@ for(i in 1:5000){
 
 
 ```{r Plotting results from averaged boostrapped absolute value running imbalance}
+
+#plotting difference in average absolute value
 ggplot(data = group_distance, aes(diff_in_dist)) +
   geom_histogram() +
+  #adding 90% CI
   geom_vline(xintercept = quantile(group_distance$diff_in_dist, 0.05), color= "#CFB87C") +
   geom_vline(xintercept = quantile(group_distance$diff_in_dist, 0.95), color= "#CFB87C") +
   labs(title = "Estimated Difference in Average Absolute Value", x="Difference in Average Absolute Value") +
   theme_minimal()
 
+#plotting each groups bootstrapped average absolute distance
 ggplot(data = group_distance) +
   geom_histogram(aes(injured_dist), alpha = 0.75, fill ="#CFB87C") +
   geom_histogram(aes(uninjured_dist), alpha = 0.75) +
@@ -2960,9 +2978,9 @@ Historical_Running_clean <- left_join(Historical_Running_clean, info, by="anon_i
 ```
 
 
-```{r Looking at Running Imbalance }
-for(i in 1:3){
-  p <- ggplot(data=Historical_Running_clean[Historical_Running_clean$Position==Positions[i],],aes(Running.Imbalance)) +
+```{r Looking at Running Imbalance for each position category}
+for(i in 1:3){ #going through all of the categories for positions
+  p <- ggplot(data=Historical_Running_clean[Historical_Running_clean$Position==Positions[i],],aes(Running.Imbalance)) + #looking at distribution of running imbalance
     geom_histogram() +
     labs(subtitle=Positions[i])
   
@@ -2971,14 +2989,17 @@ for(i in 1:3){
 ```
 
 ```{r}
-Player_Summary_Stats <- distinct(Historical_Running_clean[,c("anon_id", "Position",
+#only looking at non repeat values for each player
+#don't overcount one person's variance
+Player_Summary_Stats <- distinct(Historical_Running_clean[,c("anon_id",
+                                                             "Position",
                                                  "Specific.Position", 
                                                  "Player.Variance")])
 ```
 
 
 ```{r}
-for(i in 1:3){
+for(i in 1:3){#looking at player variance grouped by position category
   p <- ggplot(data=Player_Summary_Stats[Player_Summary_Stats$Position==Positions[i],],
               aes(Player.Variance)) +
     geom_histogram() +
@@ -3004,6 +3025,7 @@ BIGS <- Player_Summary_Stats %>%
   filter(Position == "BIG") %>%
   na.omit()
 
+#making empty data frame for the bootstrap
 group_avg_variance <- data.frame(COMBO_var = rep(NA, 5000),
                                  SKILL_var = rep(NA, 5000),
                                  BIG_var = rep(NA, 5000))
@@ -3013,10 +3035,13 @@ group_avg_variance <- data.frame(COMBO_var = rep(NA, 5000),
 ```{r}
 for(i in 1:5000){
   set.seed(i)
+  
+  #take sample from each category
   combo_sample <- sample_n(COMBOS, size=20, replace=TRUE)
   skill_sample <- sample_n(SKILLS, size=22, replace=TRUE)
   big_sample <- sample_n(BIGS, size=24, replace=TRUE)
   
+  #calculate the average variance for each group
   group_avg_variance[i,1] <- mean(na.omit(combo_sample$Player.Variance))
   group_avg_variance[i,2] <- mean(na.omit(skill_sample$Player.Variance))
   group_avg_variance[i,3] <- mean(na.omit(big_sample$Player.Variance))
@@ -3025,24 +3050,28 @@ for(i in 1:5000){
 
 
 ```{r}
+#plot the histogram for Combos with 90% CI
 ggplot(data=group_avg_variance, aes(COMBO_var)) +
   geom_histogram() +
   geom_vline(xintercept = quantile(group_avg_variance$COMBO_var, 0.05)) +
   geom_vline(xintercept = quantile(group_avg_variance$COMBO_var, 0.95)) +
   theme_minimal()
 
+#plot the histogram for skills with 90% CI 
 ggplot(data=group_avg_variance, aes(SKILL_var)) +
   geom_histogram(fill="#CFB87C") +
   geom_vline(xintercept = quantile(group_avg_variance$SKILL_var, 0.05), color="#CFB87C") +
   geom_vline(xintercept = quantile(group_avg_variance$SKILL_var, 0.95), color="#CFB87C") +
   theme_minimal()
 
+#plot the histofram for bigs with 90% CI
 ggplot(data=group_avg_variance, aes(BIG_var)) +
   geom_histogram(fill="#A2A4A3") +
   geom_vline(xintercept = quantile(group_avg_variance$BIG_var, 0.05), color="#A2A4A3") +
   geom_vline(xintercept = quantile(group_avg_variance$BIG_var, 0.95), color="#A2A4A3") +
   theme_minimal()
 
+#plot all the histograms together
 ggplot(data=group_avg_variance) +
   geom_histogram(aes(COMBO_var), alpha=0.5, fill="black") +
   geom_histogram(aes(SKILL_var), alpha=0.5, fill="#CFB87C") +
@@ -3050,7 +3079,10 @@ ggplot(data=group_avg_variance) +
   labs(title="Estimated Average Variance in Running Imbalance", x="Average Variance in Running Imbalance") +
   theme_minimal()
 ```
+
+
 ```{r}
+#storing the confidence intervals in different data frame for plotting
 var_confints <- data.frame(Category = c("COMBO", "SKILL", "BIG"),
                        Lower_Bound = c(quantile(group_avg_variance$COMBO_var, 0.05), 
                                        quantile(group_avg_variance$SKILL_var, 0.05), 
@@ -3063,25 +3095,33 @@ var_confints <- data.frame(Category = c("COMBO", "SKILL", "BIG"),
                                        quantile(group_avg_variance$BIG_var, 0.95)))
 head(var_confints)
 
+#plotting the CIs from bootstrap
 ggplot(data=var_confints, aes(x=Category, y=Median, ymin=Lower_Bound, ymax=Upper_Bound, color=Category)) +
   geom_pointrange() +
   labs(y="Estimated Average Variance in Running Imbalance", title="Running Imbalance Variance 90% CI") +
   scale_color_manual(values = c("COMBO" = "black", "SKILL" = "#CFB87C", "BIG" = "#A2A4A3")) +
   theme_minimal()
 ```
+
+
 ```{r}
+#Making column for absolute value running imbalance
 Historical_Running_clean <- Historical_Running_clean %>%
   mutate(Abs.Value.Running.Imbalance = abs(Running.Imbalance))
 
+#sorting into combos
 COMBOS <- Historical_Running_clean %>%
   filter(Position == "COMBO")
 
+#sorting into skills
 SKILLS <- Historical_Running_clean %>%
   filter(Position == "SKILL")
 
+#sorting into bigs
 BIGS <- Historical_Running_clean %>%
   filter(Position == "BIG")
 
+#empty data frame for the bootstrap
 group_avg_dist <- data.frame(COMBO_dist = rep(NA, 5000),
                              SKILL_dist = rep(NA, 5000),
                              BIG_dist = rep(NA, 5000))
@@ -3090,10 +3130,13 @@ group_avg_dist <- data.frame(COMBO_dist = rep(NA, 5000),
 ```{r}
 for(i in 1:5000){
   set.seed(i)
+  
+  #taking a sample from each of the position categories
   combo_sample <- sample_n(COMBOS, size=1203, replace=TRUE)
   skill_sample <- sample_n(SKILLS, size=1635, replace=TRUE)
   big_sample <- sample_n(BIGS, size=1224, replace=TRUE)
   
+  #calculating the mean average absolute value running imbalance
   group_avg_dist[i,1] <- mean(na.omit(combo_sample$Abs.Value.Running.Imbalance))
   group_avg_dist[i,2] <- mean(na.omit(skill_sample$Abs.Value.Running.Imbalance))
   group_avg_dist[i,3] <- mean(na.omit(big_sample$Abs.Value.Running.Imbalance))
@@ -3102,6 +3145,7 @@ for(i in 1:5000){
 
 
 ```{r}
+#plotting average absolute distance for each of the categories
 ggplot(data=group_avg_dist) +
   geom_histogram(aes(COMBO_dist), alpha=0.5, fill="black") +
   geom_histogram(aes(SKILL_dist), alpha=0.5, fill="#CFB87C") +
@@ -3113,6 +3157,7 @@ ggplot(data=group_avg_dist) +
 
 
 ```{r}
+#holding 90% CI for each group in a data frame
 dist_confints <- data.frame(Category = c("COMBO", "SKILL", "BIG"),
                        Lower_Bound = c(quantile(group_avg_dist$COMBO_dist, 0.05), 
                                        quantile(group_avg_dist$SKILL_dist, 0.05), 
@@ -3125,6 +3170,7 @@ dist_confints <- data.frame(Category = c("COMBO", "SKILL", "BIG"),
                                        quantile(group_avg_dist$BIG_dist, 0.95)))
 head(dist_confints)
 
+#plotting each confidence interval with a line chart
 ggplot(data=dist_confints, aes(x=Category, y=Median, ymin=Lower_Bound, ymax=Upper_Bound, color=Category)) +
   geom_pointrange() +
   scale_color_manual(values = c("COMBO" = "black", "SKILL" = "#CFB87C", "BIG" = "#A2A4A3")) +
@@ -3134,16 +3180,20 @@ ggplot(data=dist_confints, aes(x=Category, y=Median, ymin=Lower_Bound, ymax=Uppe
 
 
 ```{r}
+#looking at each distinct injury incident
 Injury_Incidents <- distinct(Incident_Report_clean[,c("anon_id", "Position", "Date.of.Injury")])
 
+#how many positions sustained a hamstring injury
 Position_counts <- na.omit(distinct(Historical_Running_clean[,c("anon_id", "Position")]))
 
+#bar chart with hamstring injury by position category
 ggplot(Injury_Incidents, aes(Position, fill=Position)) +
   geom_bar() +
   scale_fill_manual(values = c("COMBO" = "black", "SKILL" = "#CFB87C", "BIG" = "#A2A4A3")) +
   labs(title="Hamstring Injuries by Position") +
   theme_minimal()
 
+#looking at prevalence of position categories on entire team
 ggplot(Position_counts, aes(Position, fill=Position)) +
   geom_bar() +
   scale_fill_manual(values = c("COMBO" = "black", "SKILL" = "#CFB87C", "BIG" = "#A2A4A3")) +
@@ -3300,10 +3350,12 @@ remove(Injured_Historical_Running)
 ### Injury Risk
 ```{r}
 for(i in 1:22){
+  #looking at running imbalance in the weeks leading up to and after HSI
   p <- ggplot(data=Historical_Running_clean[Historical_Running_clean$anon_id==injured_IDs[i],], aes(Date, Running.Imbalance)) +
     geom_line(linetype=1) +
     geom_point(aes(color=Weeks.After.Injury)) +
     geom_vline(xintercept = Incident_Report_clean[Incident_Report_clean$anon_id==injured_IDs[i],]$Date.of.Injury, linetype=2) +
+    #making color scheme for weeks
     scale_color_manual(values = c("-4"="green", "-3"="yellow", "-2"="orange", "-1"="red", "0"="black","1"= "purple", "2"="navy", "3"="blue", "4"="skyblue")) +
     theme_minimal() +
     labs(title="Running Imbalance", subtitle = injured_IDs[i])
@@ -3419,6 +3471,7 @@ for(i in 1:71){
     #calculating how strong of a linear trend there is using kendall correlation
     Kendall_Cor <- cor(x=Historical_Running_clean[Historical_Running_clean$anon_id == all_IDs[i],]$Days.Since.Start, y=Historical_Running_clean[Historical_Running_clean$anon_id == all_IDs[i],]$Running.Imbalance, method="kendall")
     
+    #storing the Kendall correlation coefficient for all of the players
     trends[trends$ID == all_IDs[i],2] = Kendall_Cor
   
     if(all_IDs[i] %in% injured_IDs){
@@ -3445,12 +3498,14 @@ for(i in 1:71){
 
 
 ```{r}
-trends <- trends %>%
+trends <- trends %>% #adding in column to signify whether a player had HSI
   mutate(injured = ifelse(ID %in% injured_IDs,1,0))
 
+#plotting all the kendall rank coefficients for injured
 ggplot(trends[trends$KC>0 & trends$injured==1,], aes(KC)) +
   geom_histogram()
 
+#plotting all the kendall rank coefficients for non injured
 ggplot(trends[trends$KC>0 & trends$injured==0,], aes(KC)) +
   geom_histogram()
 
@@ -3458,24 +3513,30 @@ ggplot(trends[trends$KC>0 & trends$injured==0,], aes(KC)) +
 
 
 ```{r}
+#separating into two data sets, injured and non injured
 injured_trends <- trends %>%
   filter(injured==1)
 
 uninjured_trends <- trends %>%
   filter(injured==0)
 
-
+#empty data frame for the bootstrap to fill
 kendall_cors <- data.frame(injured_avg_KC = rep(NA,5000),
                            uninjured_avg_KC = rep(NA,5000),
                            avg_diff_KC = rep(NA,5000))
 
+
 for(i in 1:5000){
   set.seed(i)
+  
+  #sample from each data set
   injured_samp <- sample_n(injured_trends, size=22, replace=TRUE)
   uninjured_samp <- sample_n(uninjured_trends, size=49, replace=TRUE)
   
+  #calculate the average absolute value kendall correlation
   kendall_cors[i,1] <- mean(abs(injured_samp$KC))
   kendall_cors[i,2] <- mean(abs(uninjured_samp$KC))
+  #calculate difference between groups
   kendall_cors[i,3] <- kendall_cors[i,1] - kendall_cors[i,2]
 }
 
@@ -3483,6 +3544,7 @@ for(i in 1:5000){
 
 
 ```{r}
+#plotting the difference in average absolute value kendall coefficient
 ggplot(data=kendall_cors, aes(avg_diff_KC)) +
   geom_histogram() +
   geom_vline(xintercept = quantile(kendall_cors$avg_diff_KC, 0.05), color = "#CFB87C") +
@@ -3490,6 +3552,7 @@ ggplot(data=kendall_cors, aes(avg_diff_KC)) +
   labs(title = "Estimated Difference in Average Kendall Rank Correlation Coefficient",
        x = "Difference in Average Kendall Coefficient")
 
+#plotting each groups aberage absolute value kendall coefficient
 ggplot(data=kendall_cors) +
   geom_histogram(aes(injured_avg_KC), alpha=0.7, fill="#CFB87C") +
   geom_histogram(aes(uninjured_avg_KC), alpha=0.7) +
