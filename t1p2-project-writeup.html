@@ -352,15 +352,25 @@ display: none;
 </div>
 
 
-<div id="team-1-project-2-write-up" class="section level1">
-<h1>Team 1 Project 2 Write Up</h1>
 <div id="running-speeds-and-running-imbalance-in-the-cu-boulder-football-team" class="section level2">
 <h2>Running Speeds and Running Imbalance in the CU Boulder Football
 Team</h2>
 <div id="member-contributions" class="section level3">
 <h3>Member Contributions</h3>
 <p><strong>Ian McElveen</strong>:</p>
-<p><strong>Cecilia Gonzales</strong>:</p>
+<p><strong>Cecilia Gonzales</strong>: Cecilia contributed to this
+project by cleaning the data sets used in this analysis. She also worked
+primarily on the running imbalance section of this project but also
+supported by building models for the running speeds section and
+identified players who saw a statistically significant decrease in their
+top running speed while at CU Boulder. Cecilia identified that variance
+in running imbalance has the strongest relationship with hamstring
+injury risk and used that to make meaningful differentiations between
+players on the team. She found that while variance in running imbalance
+itself was not strong enough to predict whether or not a player would
+return within their predicted time frame, it had a strong enough
+relationship with return time to potentially be used to make adjustments
+to prognoses as time goes on.</p>
 </div>
 <div id="project-overview" class="section level3">
 <h3>Project Overview</h3>
@@ -585,9 +595,17 @@ categorized through bands. The Historical Running data set only
 contained the anonymous ID, Date, and Running Imbalance value. So the
 only cleaning on this data set was to filter out rows with missing data.
 The Incident Report data set was filtered down to only look at Hamstring
-injuries(rows where column “OSICS14.Code” = “TM1”). All of the data sets
+injuries(rows where column OSICS14.Code = “TM1”). All of the data sets
 were also filtered down to only include data from January 1, 2024 and
 on.</p>
+<p>For both sections, all of the plots were built using the ggplot2
+library. Most of the data manipulation was done using dplyr and
+tidyverse tools and have comments to supplement. Since most of this
+project involved grouping players into different categories and
+plotting, this analysis used a lot of loops to cycle through different
+groupings. The second part of this analysis uses 5 different loops to
+create bootstrap distributions. All loops have comments to make it clear
+what they are for though.</p>
 </div>
 <div id="final-results" class="section level3">
 <h3>Final Results</h3>
@@ -612,12 +630,12 @@ spikes than normal in running imbalance suggesting that at no point in
 time did the team have a large shift in running imbalance all
 together.</p>
 <p>Through the use of three different bootstrap algorithms, we found
-that player who sustained a hamstring injury have a statistically
+that players who sustained a hamstring injury have a statistically
 significantly higher average variance in running imbalance and average
 absolute value running imbalance than players who did not sustain a
-hamstring injury. The average absolute value in running imbalance was a
-different very small though and it would be hard to differentiate the
-groups in practice only using the one estimated difference.</p>
+hamstring injury. The difference in average absolute value in running
+imbalance was very small though and it would be hard to differentiate
+the groups in practice only using the one estimated difference.</p>
 <p>The different categories of positions tended to have the same average
 variance when estimated using a bootstrap method. Using the same
 bootstrapping method as before but estimating the average absolute value
@@ -653,10 +671,34 @@ imbalance are not strongly associated with injury risk, it’s the
 variability in running imbalance that is stronger associated.</p>
 <p><strong>Is running imbalance sensitive enough of a metric to use as a
 prognosis tool versus a rehab tool?</strong></p>
-</div>
-</div>
-<div id="final-results-1" class="section level3">
-<h3>Final Results</h3>
+<p>Earlier analysis identified that variance in running imbalance across
+an athlete’s career at CU Boulder tended to have the strongest
+relationship with HSI risk. For this reason, a model was built using
+variance in running imbalance from the date of the injury to the end of
+the prognosis time frame to predict whether or not the player returned
+to play within the predicted time frame. This model resulted in a
+statistically significant slope coefficient at the <span class="math inline">\(\alpha\)</span> = 0.01 significance level
+suggesting that there is a strong relationship between variance and the
+likelihood of the player returning within the predicted time frame. The
+value of the slope coefficient was -0.04135 which in the context of the
+model suggested that lower variance was associated with a higher
+likelihood of returning to play within the prognosis time frame. When
+this model was cross validated though, it had a classification error
+rate of 0.4 meaning that it may not be strong enough to make accurate
+definitive decisions about whether or not a player would return on time
+or not.</p>
+<p>To see the relationship that variance in running imbalance had with
+return to play times, a bootstrap was performed to estimate the mean
+variance in running imbalance for the two groups (returned to play
+within the predicted time frame or not). This bootstrap revealed that
+players who did not return within the prognosis time frame had a higher
+average variance in running imbalance by 1.2 which is statistically
+significant at the <span class="math inline">\(\alpha\)</span> = 0.01
+significance level. With there being a strong distinction between the
+two groups, but not enough sensitivity to make consistently accurate
+predictions, we suggest that variance in running imbalance throughout
+the recovery period could be used to supplement prognosis estimates made
+with rehab tools.</p>
 </div>
 </div>
 </div>
