@@ -609,7 +609,17 @@ ggplot(player_weekly_data, aes(x = week)) +
       "V6" = "orange",
       "V7" = "tomato",
       "V8" = "firebrick"
-    )
+    ),
+    ,
+  labels = c(
+    "V2" = "V2  (5-7)",
+    "V3" = "V3  (7-9)",
+    "V4" = "V4  (9-12)",
+    "V5" = "V5  (12-14)",
+    "V6" = "V6  (14-16)",
+    "V7" = "V7  (16-17)",
+    "V8" = "V8  (17+ mph)"
+  )
   ) +
   scale_y_continuous(
     name = "Band Distribution (%)",
@@ -618,7 +628,7 @@ ggplot(player_weekly_data, aes(x = week)) +
   labs(
     title = "Velocity Band Effort % and Speed Trend for Player ID_11",
     x = "Week",
-    fill = "Velocity Band"
+    fill = "Absolute Velocity Band"
   ) +
   theme_classic()
 ```
@@ -1145,7 +1155,6 @@ ID_11 <- Catapult_Session_clean %>%
       breaks = c(20, 40, 50, 60, 70, 80, 90, 100),
       labels = c("V2 (20-40%)", "V3 (40-50%)","V4 (50-60%)" ,"V5 (60-70%)", "V6 (70-80%)", "V7 (80-90%)", "V8 (90-100%)"),
       right = TRUE, # Set to TRUE to include 100% in band
-      include.lowest = TRUE  # Includes 0 in first band
     ),
     # Reverse factor levels so highest band is on top in plot
   relative_band = factor(
@@ -1250,7 +1259,6 @@ unique(clean_anons$anon_id) %>%
           labels = c("V2 (20-40%)", "V3 (40-50%)", "V4 (50-60%)", "V5 (60-70%)",
                      "V6 (70-80%)", "V7 (80-90%)", "V8 (90-100%)"),
           right = TRUE, # Set to true to include 100%
-          include.lowest = TRUE  # Set to true to include 0 in 1st interval
         ),
         # Reverse factor levels so highest band is on top in plot
         relative_band = factor(
@@ -1652,18 +1660,45 @@ pc_loadings
 
 
 ```{r}
-# Model based on mean 
+# Model based on mean weekly max velocity
+
+relative_model <- lm(mean_weekly_max_velocity ~ mean_V2 + mean_V4 + mean_V5 + mean_V6 + mean_V7 + mean_V8, data = relative_bands_group_data)
+summary(relative_model)
+
+absolute_model <- lm(mean_weekly_max_velocity ~ mean_pct_V2 + mean_pct_V4 + mean_pct_V5 + mean_pct_V6 + mean_pct_V7 + mean_pct_V8, data = weekly_band_effort_by_group)
+summary(absolute_model)
 
 bigs_relative <- relative_bands_group_data %>%
   filter(Position_Group == "BIGS")
+relative_model_bigs <- lm(mean_weekly_max_velocity ~ mean_V2 + mean_V4 + mean_V5 + mean_V6 + mean_V7 + mean_V8, data = bigs_relative)
+summary(relative_model_bigs)
 
 skill_relative <- relative_bands_group_data %>%
   filter(Position_Group == "SKILL")
+relative_model_skill <- lm(mean_weekly_max_velocity ~ mean_V2 + mean_V4 + mean_V5 + mean_V6 + mean_V7 + mean_V8, data = skill_relative)
+summary(relative_model_skill)
 
 combo_relative <- relative_bands_group_data %>%
   filter(Position_Group == "COMBO")
+relative_model_combo <- lm(mean_weekly_max_velocity ~ mean_V2 + mean_V4 + mean_V5 + mean_V6 + mean_V7 + mean_V8, data = combo_relative)
+summary(relative_model_combo)
 
 # ADD SAME MODEL techniques as absolute bands
+
+bigs_absolute <- weekly_band_effort_by_group %>%
+  filter(Position_Group == "BIGS")
+absolute_model_bigs <- lm(mean_weekly_max_velocity ~ mean_pct_V2 + mean_pct_V4 + mean_pct_V5 + mean_pct_V6 + mean_pct_V7 + mean_pct_V8, data = bigs_absolute)
+summary(absolute_model_bigs)
+
+skill_absolute <- weekly_band_effort_by_group %>%
+  filter(Position_Group == "SKILL")
+absolute_model_skill <- lm(mean_weekly_max_velocity ~ mean_pct_V2 + mean_pct_V4 + mean_pct_V5 + mean_pct_V6 + mean_pct_V7 + mean_pct_V8, data = skill_absolute)
+summary(absolute_model_skill)
+
+combo_absolute <- weekly_band_effort_by_group %>%
+  filter(Position_Group == "COMBO")
+absolute_model_combo <- lm(mean_weekly_max_velocity ~ mean_pct_V2 + mean_pct_V4 + mean_pct_V5 + mean_pct_V6 + mean_pct_V7 + mean_pct_V8, data = combo_absolute)
+summary(absolute_model_combo)
 ```
 
 ## How does sprinting exposure (# of efforts, % max reached) relate to incidence of hamstring injuries?
@@ -1804,7 +1839,7 @@ unique(injuries_and_running$anon_id) %>%
   })
 ```
 The blue lines indicate a week where an injury occurred.
-No real insights can be made from looking at relative velocity bands and injury occurrances. 
+No real insights can be made from looking at relative velocity bands and injury occurrences. 
 
 ```{r}
 model_injury <- glm(injury ~ pct_of_max_velocity,
@@ -1945,6 +1980,9 @@ week_prior <- injuries_and_running_clean %>%
     lag2_pct_of_max_velocity = lag(pct_of_max_velocity, 2),
     lag3_pct_of_max_velocity = lag(pct_of_max_velocity, 3),
     
+    # Average weeks
+    avg_last3weeks = (lag1_pct_of_max_velocity + lag2_pct_of_max_velocity + lag3_pct_of_max_velocity) / 3,
+    
     # Change of % of max from current week to previous weeks
     change_lastweek = pct_of_max_velocity - lag1_pct_of_max_velocity,
     change_last2weeks = pct_of_max_velocity - lag2_pct_of_max_velocity,
@@ -1978,9 +2016,18 @@ non_injury_week_prior <- week_prior %>%
 means_injury <- injury_week_prior %>%
   drop_na(lag1_pct_of_max_velocity)
 injury_week_prior_mean <- mean(means_injury$lag1_pct_of_max_velocity)
+# Get Means
+means_injury <- injury_week_prior %>%
+  drop_na(avg_last3weeks)
+avg_last3weeks_mean <- mean(means_injury$avg_last3weeks)
+
 mean_noninjury <- non_injury_week_prior %>%
   drop_na(lag1_pct_of_max_velocity)
 non_injury_week_prior_mean <- mean(mean_noninjury$lag1_pct_of_max_velocity)
+# Get Means
+means_noninjury <- non_injury_week_prior %>%
+  drop_na(avg_last3weeks)
+avg_last3weeks_mean_non <- mean(means_noninjury$avg_last3weeks)
 injury_week_prior_mean
 non_injury_week_prior_mean
 
@@ -1995,6 +2042,20 @@ ggplot(week_prior, aes(x = week, y = lag1_pct_of_max_velocity)) +
   labs(
     title = "Percent of Max Velocity of Prior Week",
     subtitle = paste("Mean % of Max Velocity, Injury: ", round(injury_week_prior_mean, 2), " |  Mean % of Max Velocity, Non-Injury: ", round(non_injury_week_prior_mean, 2)),
+    x = "Week",
+    y = "% of Max Velocity Reached"
+  ) +
+  theme_classic()
+
+# Plot of % Max Velocity during injury and non injury weeks
+ggplot(week_prior, aes(x = week, y = avg_last3weeks)) +
+  geom_point(aes(color = factor(injury))) +
+  scale_color_manual(values = c("0" = "black", "1" = "red"),
+                     labels = c("No Injury", "Injury"),
+                     name = "Injury Status") +
+  labs(
+    title = "Average Percent of Max Velocity Over Last Three Weeks",
+    subtitle = paste("Mean % of Max Velocity, Injury: ", round(avg_last3weeks_mean, 2), " |  Mean % of Max Velocity, Non-Injury: ", round(avg_last3weeks_mean_non, 2)),
     x = "Week",
     y = "% of Max Velocity Reached"
   ) +
@@ -2170,6 +2231,52 @@ There is no clear evidence that % of max velocity in the current or prior weeks 
 ##### Comparing the number of >90% efforts with injury
 
 ```{r}
+# Take graph from question 1 and add when injuries happen
+
+# >90% counts for each week instead of each day. Will be a little less noisy than the daily
+weekly_90_counts <- Catapult_Session_clean %>%
+  filter(Date >= as.Date("2024-06-30") & Date <= as.Date("2025-07-01")) %>%
+  filter(Hit.90.Percent.Max == "Yes") %>%
+  distinct(anon_id, Date) %>%
+  mutate(week = floor_date(Date, unit = "week")) %>%
+  group_by(week) %>%
+  summarise(weekly_hits = n())
+
+
+ggplot(weekly_90_counts, aes(x = week, y = weekly_hits)) +
+  # Add shaded area for season
+  annotate("rect",
+           xmin = as.Date("2024-08-29"),
+           xmax = as.Date("2024-12-28"),
+           ymin = -Inf, ymax = Inf,
+           alpha = 0.2, fill = "gray") +
+  geom_line(color = "#CFB87C", linewidth = 1) +
+  geom_point(color = "#000000") +
+  geom_smooth(method = "loess", se = FALSE, color = "#565A5C", linetype = "dashed", linewidth = 0.6) +
+  # Injury markers
+  geom_vline(data = injury_weeks, aes(xintercept = week),
+             color = "red", linetype = "dashed", linewidth = 0.6) +
+  # Plot from Q1
+  geom_line(color = "#CFB87C", linewidth = 1) +
+  geom_point(color = "#000000") +
+  geom_smooth(method = "loess", se = FALSE, color = "#565A5C", linetype = "dashed", linewidth = 0.6) +
+
+  # Monthly x-axis
+  scale_x_date(
+    date_breaks = "1 month",
+    date_labels = "%b\n%Y"
+  ) +
+
+  labs(
+    title = "Weekly Count of Players Reaching ≥ 90% of Max Velocity with Injuries",
+    subtitle = paste0("Week Average: ", mean_val),
+    x = "Month", y = "Times reached ≥ 90%"
+  ) +
+  theme_classic()
+```
+
+
+```{r}
 # Convert 90 percent max to logical
 # Instead of Yes/No it is True/False
 catapult_weekly <- Catapult_Session_clean %>%
@@ -2244,7 +2351,8 @@ weekly_90pct_injuries <- weekly_90pct_injuries %>%
 ```
 
 ```{r}
-# Bar chart of sprint counts the week of an injury
+# Week of
+# Bar chart of sprint counts the week of an injury and bar chart of injruy rate
 
 # Only injuries
 injury_summary <- weekly_90pct_injuries %>%
@@ -2258,9 +2366,32 @@ ggplot(injury_summary, aes(x = factor(count_90pct), y = total_injuries)) +
   geom_col(fill = "#CFB87C") +
   geom_text(aes(label = total_injuries), vjust = -0.3, size = 4) +
   labs(
-    x = "Weekly >90% Sprint Count",
+    x = "≥ 90% Sprint Count",
     y = "Total Injuries",
-    title = "Injuries by >90% Sprint Count in the Week of Injury"
+    title = "Injuries by ≥ 90% Sprint Count in the Week of Injury"
+  ) +
+  theme_classic()
+
+# Injury rate table for week of injury counts
+injury_rate_table <- weekly_90pct_injuries %>%
+  group_by(count_90pct) %>%
+  summarise(
+    total_weeks = n(),                           # Total weeks with this count
+    injury_weeks = sum(injury == 1),             # How many had injury that week
+    injury_rate = injury_weeks / total_weeks * 100,  # Percentage injured
+    injury_rate = round(injury_rate, 2)
+  ) %>%
+  arrange(desc(injury_rate))
+injury_rate_table
+
+
+ggplot(injury_rate_table, aes(x = factor(count_90pct), y = injury_rate)) +
+  geom_col(fill = "#CFB87C") +
+  geom_text(aes(label = injury_rate), vjust = -0.3, size = 4) +
+  labs(
+    x = "≥ 90% Sprint Count",
+    y = "Injury Rate",
+    title = "Injury Rate by ≥ 90% Sprint Count in the Week of Injury"
   ) +
   theme_classic()
 ```
@@ -2281,9 +2412,9 @@ injury_rate_table
 ```{r}
 # Create a contingency table manually
 injury_table <- matrix(c(
-  10, 1343,   # Low: injured, not injured
-  6, 395,     # Moderate: injured, not injured
-  0, 78      # High: injured, not injured
+  9, 1248,   # Low (0-1): injured, not injured
+  8, 692,     # Moderate (2-3): injured, not injured
+  1, 72      # High (3-5): injured, not injured
 ), nrow = 3, byrow = TRUE)
 
 # Add row and column names for clarity
@@ -2296,45 +2427,48 @@ fisher_result <- fisher.test(injury_table)
 # View the result
 print(fisher_result)
 ```
-Our p-value of 0.33 means that there is no statically significance association between our sprint load groups and injury. 
+Our p-value of 0.32 means that there is no statically significance association between our sprint load groups and injury. 
 Injury events are pretty rare overall in our dataset, making it hard to detect subtle differences.
 
 
 ```{r}
+# Bar chart of total sprint counts from last three weeks
+
 # Summarize injuries and total weeks by total sprint counts over last 2 weeks
-injury_summary_2week <- weekly_90pct_injuries %>%
-  mutate(sum_last2weeks = replace_na(sum_last2weeks, 0)) %>%
-  group_by(sum_last2weeks) %>%
+injury_summary_3week <- weekly_90pct_injuries %>%
+  mutate(sum_last3weeks = replace_na(sum_last3weeks, 0)) %>%
+  group_by(sum_last3weeks) %>%
   summarise(
     total_injuries = sum(injury == 1),
     total_weeks = n(),
-    injury_rate = (total_injuries / total_weeks) * 100
+    injury_rate = (total_injuries / total_weeks) * 100,
+    injury_rate = round(injury_rate, 2)
   ) %>%
   arrange(desc(injury_rate))
-injury_summary_2week
+injury_summary_3week
 
-# Plot total injuries by total sprint counts over last 2 weeks
-ggplot(injury_summary_2week, aes(x = factor(sum_last2weeks), y = total_injuries)) +
+ggplot(injury_summary_3week, aes(x = factor(sum_last3weeks), y = total_injuries)) +
   geom_col(fill = "#CFB87C") +
   geom_text(aes(label = total_injuries), vjust = -0.3, size = 4) +
   labs(
-    x = "Total >90% Sprint Counts Over Last 2 Weeks",
+    x = "≥ 90% Sprint Count",
     y = "Total Injuries",
-    title = "Injuries by Total >90% Sprint Counts Over the Last Two Weeks"
+    title = "Injuries by Total ≥ 90% Sprint Count Over Last 3 Weeks"
   ) +
   theme_classic()
 
-# Plot injury rate
-ggplot(injury_summary_2week, aes(x=factor(sum_last2weeks), y = injury_rate)) +
+
+ggplot(injury_summary_3week, aes(x = factor(sum_last3weeks), y = injury_rate)) +
   geom_col(fill = "#CFB87C") +
-  geom_text(aes(label = round(injury_rate, 3)), vjust = -0.3, size = 4) +
+  geom_text(aes(label = injury_rate), vjust = -0.3, size = 4) +
   labs(
-    x = "Total >90% Sprint Counts Over Last 2 Weeks",
-    y = "Injury Rate",
-    title = "Injurie Rate by Total >90% Sprint Counts Over the Last Two Weeks"
+    x = "≥ 90% Sprint Count",
+    y = "Total Injuries",
+    title = "Injury Rate by Total ≥ 90% Sprint Counts Over last 3 weeks"
   ) +
   theme_classic()
 ```
+
 
 ```{r}
 # Table for counts over last few weeks
@@ -2380,6 +2514,32 @@ Moderate counts had the highest injury rate (1.52%)
 Low counts had a injury rate of 0.74%
 
 Injury rates increased from low counts (<1) injury rate of 0.74% to moderate counts (1-2) injury rate of 1.52% then dropped to 0% for high counts (2+). However, high counts have a small sample size (78), so the rate may be unstable.
+
+```{r}
+# Create a contingency table manually
+injury_table <- matrix(c(
+  6, 873,
+  4, 414,
+  2, 249,
+  2, 180,
+  1, 122,
+  3, 87,
+  0, 38,
+  0, 23,
+  0, 9,
+  0, 5  
+), nrow = 10, byrow = TRUE)
+
+# Add row and column names for clarity
+rownames(injury_table) <- c("5", "3", "1", "4", "2", "0", "6", "7", "8", "9")
+colnames(injury_table) <- c("Injured", "Not_Injured")
+
+# Run Fisher's Exact Test
+fisher_result <- fisher.test(injury_table)
+
+# View the result
+print(fisher_result)
+```
 
 ```{r}
 weekly_90pct_injuries <- weekly_90pct_injuries %>%
@@ -2504,52 +2664,9 @@ No t-tests or models revealed any insights.
 
 
 
-It is important to note that the number of injury events observed in the dataset is relatively low. As a result, the statistical power to detect significant differences in injury rates between groups is limited. This low event count increases the likelihood of a Type II error (failing to detect a true effect), and thus, non-significant results should be interpreted with caution. Future studies with larger sample sizes or more injury occurrences are needed to better assess the relationship between workload and injury risk.
-
-```{r}
-# Take graph from question 1 and add when injuries happen
-
-# >90% counts for each week instead of each day. Will be a little less noisy than the daily
-weekly_90_counts <- Catapult_Session_clean %>%
-  filter(Date >= as.Date("2024-06-30") & Date <= as.Date("2025-07-01")) %>%
-  filter(Hit.90.Percent.Max == "Yes") %>%
-  distinct(anon_id, Date) %>%
-  mutate(week = floor_date(Date, unit = "week")) %>%
-  group_by(week) %>%
-  summarise(weekly_hits = n())
+It is important to note that the number of injury events observed in the dataset is relatively low. As a result, the statistical power to detect significant differences in injury rates between groups is limited. This low event count increases the likelihood of a Type II error (failing to detect a true effect), and thus, non-significant results should be interpreted with caution. Future studies with larger sample sizes or more injury occurrences are needed to better assess the relationship between sprint exposure and injury risk.
 
 
-ggplot(weekly_90_counts, aes(x = week, y = weekly_hits)) +
-  # Add shaded area for season
-  annotate("rect",
-           xmin = as.Date("2024-08-29"),
-           xmax = as.Date("2024-12-28"),
-           ymin = -Inf, ymax = Inf,
-           alpha = 0.2, fill = "gray") +
-  geom_line(color = "#CFB87C", linewidth = 1) +
-  geom_point(color = "#000000") +
-  geom_smooth(method = "loess", se = FALSE, color = "#565A5C", linetype = "dashed", linewidth = 0.6) +
-  # Injury markers
-  geom_vline(data = injury_weeks, aes(xintercept = week),
-             color = "red", linetype = "dashed", linewidth = 0.6) +
-  # Plot from Q1
-  geom_line(color = "#CFB87C", linewidth = 1) +
-  geom_point(color = "#000000") +
-  geom_smooth(method = "loess", se = FALSE, color = "#565A5C", linetype = "dashed", linewidth = 0.6) +
-
-  # Monthly x-axis
-  scale_x_date(
-    date_breaks = "1 month",
-    date_labels = "%b\n%Y"
-  ) +
-
-  labs(
-    title = "Weekly Count of Players Reaching ≥ 90% of Max Velocity with Injuries",
-    subtitle = paste0("Week Average: ", mean_val),
-    x = "Month", y = "Times reached ≥ 90%"
-  ) +
-  theme_classic()
-```
 
 
 
