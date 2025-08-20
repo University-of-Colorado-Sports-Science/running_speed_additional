@@ -8,163 +8,690 @@ editor_options:
 
 ### Member Contributions
 
-**Ian McElveen**:
+**Ian McElveen**: Ian's contributions focused on analyzing running
+speeds and their relationship to performance and injury. This included
+examining how often athletes reached ≥90% of their maximum velocity
+across the training season, creating visualizations by player, position,
+and position group to highlight trends. Additionally, he analyzed sprint
+effort distributions across absolute and relative velocity bands,
+developed position-specific linear models, and created dual-axis plots
+to assess how exposure to different speed bands related to peak sprint
+velocity. Finally, Ian integrated injury data with sprint exposure
+metrics, using lagged variables, visualizations, and statistical tests
+to investigate whether sprint counts or velocity exposures were
+associated with hamstring injuries.
 
-**Cecilia Gonzales**: Cecilia contributed to this project by cleaning the data sets used in this analysis. She also worked primarily on the running imbalance section of this project but also supported by building models for the running speeds section and identified players who saw a statistically significant decrease in their top running speed while at CU Boulder. Cecilia identified that variance in running imbalance has the strongest relationship with hamstring injury risk and used that to make meaningful differentiations between players on the team. She found that while variance in running imbalance itself was not strong enough to predict whether or not a player would return within their predicted time frame, it had a strong enough relationship with return time to potentially be used to make adjustments to prognoses as time goes on. 
-
+**Cecilia Gonzales**: Cecilia contributed to this project by cleaning
+the data sets used in this analysis. She also worked primarily on the
+running imbalance section of this project but also supported by building
+models for the running speeds section and identified players who saw a
+statistically significant decrease in their top running speed while at
+CU Boulder. Cecilia identified that variance in running imbalance has
+the strongest relationship with hamstring injury risk and used that to
+make meaningful differentiations between players on the team. She found
+that while variance in running imbalance itself was not strong enough to
+predict whether or not a player would return within their predicted time
+frame, it had a strong enough relationship with return time to
+potentially be used to make adjustments to prognoses as time goes on.
 
 ### Project Overview
 
 #### Section 1: Running Speeds
 
 **How often are athletes reaching ≥ 90% maximum velocity throughout a
-training season?** 
+training season?**
 
-To answer this question, we started by creating a bar
-chart that displayed the count of reaching ≥ 90% maximum velocity for
-each player for the training season. We defined the training season as
-6/30/2024-7/1/2025. Exploring this, we found that the average times
-reaching ≥ 90% maximum velocity throughout a training season for the
-whole team was 11.8. We also noticed that the bar chart for the whole
-team had a wide range of counts for reaching ≥ 90% maximum velocity
-throughout a training season. This led us to explore bar charts on the
-position level. We found that DBs had the highest average times reaching
-≥ 90% maximum velocity with 18.4 and the OL had the lowest with 6.8. o
-further investigate these differences, we grouped positions into broader
-categories and examined their distributions. Specifically, we created
-bar charts and computed averages for three main position groups:
+To explore this question, we began by examining how many total times
+each athlete reached at least 90 percent of their individual maximum
+velocity over the course of a defined training season. We defined this
+training season as 6/30/2024-7/1/2025. We calculated this threshold on a
+per-player basis and then created a bar chart to visualize the number of
+times each athlete met or exceeded this benchmark during that period. 
+
+We found that, on average, athletes reached 90 percent or more of their
+maximum 11.8 times over the course of the training season. However, the
+initial bar chart revealed a wide range of counts across individuals,
+suggesting considerable variability in how often athletes meet this
+threshold. To investigate potential patterns in this variability, we
+broke the data down by position and created bar charts for each
+position. 
+
+These position-level bar charts revealed that the defensive back
+position, which includes cornerbacks and safeties, had the highest
+average number of times reaching the 90 percent threshold with 18.4. In
+contrast, the offensive line recorded the lowest average, reaching this
+threshold only 6.8 times over the training season. 
+
+To further investigate these differences, we grouped the positions into
+broader categories and examined their distributions. Specifically, we
+created bar charts and calculated averages for three main position
+groups:
 
 -   Skill (DBs, WRs),
+
 -   Bigs (OL, DL), and
+
 -   Combo (LBs, QBs, TEs, RBs).
 
-To no surprise, the skill group was the had the highest average (17.1), followed by 
-the combo group (9.3) while the bigs had the lowest (8.9).
+As expected, the skill group had the highest average at 17.1, followed
+by the combo group with 9.3, while the bigs had the lowest average at
+8.9.
 
-To better understand when players were most frequently reaching ≥ 90% of their 
-maximum velocity, we created a daily summary of high-intensity efforts. We ensured
-that each player's effort was only counted once per day and then counted how many
-players reached this threshold on each day. We visualized the results using a line 
-chart that displays the daily count of players who reached ≥ 90% maximum velocity. 
-A dashed loess smoothing line was added to highlight general trends over time. This
-plot allows us to see patterns in high-speed efforts across the training season—such
-as whether they were clustered around specific weeks or varied steadily throughout the year.
+Next, we wanted to understand when during the training season players
+were most frequently reaching greater than or equal to 90 percent of
+their max velocity. To explore this, we created a daily summary of these
+efforts. We ensured that each player’s effort was only counted once per
+day, then calculated the total number of players who reached the
+threshold on each day. These results were visualized using a line chart,
+which displayed the daily count of athletes meeting or exceeding the
+threshold.
 
-The daily plot revealed substantial variability from one day to the next, making it 
-difficult to identify clear trends across the training season. To reduce this noise 
-and better observe broader patterns, we aggregated the data by week and re-analyzed 
-the frequency of players reaching ≥ 90% of their maximum velocity on a weekly basis.
-This data was far less noisy and allowed us to analyze the plots to determine that 
-it is more common to reach ≥ 90% of their maximum velocity during the pre and post
-seasons than during the actual season where games occur. On average, players reached
-≥ 90% of their maximum velocity just over 31 times per week. This does not indicate 
-that 31 individual players hit this threshold each week, as some players may have reached
-it multiple times within the same week.
+While informative, the daily plot showed substantial day-to-day
+variability, making it difficult to identify broader seasonal trends. To
+address this and reduce visual noise, we aggregated the data by week and
+re-analyzed the frequency with which players reached at least 90 percent
+of their maximum velocity. We used the same line chart, and added a
+loess smoother to highlight patterns. A shaded region was added to the
+graph to indicate the months during which the team is in season and
+playing games. This weekly visual was significantly less noisy and
+revealed clear seasonal trends. On average, the team as a whole recorded
+just over 31 total instances per week of players reaching at least 90
+percent of their maximum velocity. This count reflects the cumulative
+number of efforts across all players and does not mean that 31
+individual players hit the threshold each week—rather, some players may
+have reached it multiple times in the same week.
+
+This aggregated week view revealed that reaching 90 percent or more of
+maximum velocity was more common during the preseason and postseason
+than during the shaded, in-season period.
 
 **Should we consider the number of sprinting efforts that athletes are
 completing?**
 
+While the initial question was quite broad, we refined it to more
+directly explore: How often athletes are hitting specific bands relative
+to their top speeds. To answer this, we analyzed weekly distributions of
+velocity band efforts alongside each athlete's top weekly speed as a
+percentage of their all-time maximum.
+
+The absolute bands were identified as follows: Band 1 = 0-5 mph, Band 2
+= 5-7 mph, Band 3 = 7-9 mph, Band 4 = 9-12 mph, Band 5 = 12-14 mph, Band
+6 = 14-16 mph, Band 7 = 16-17 mph, and Band 8 = over 17 mph. It is
+important to note that we excluded Band 1 efforts (0–5 mph) from this
+analysis, as velocities in this range can occur during very slow walking
+or limited movement. Including these efforts would dilute the
+interpretation of how athletes are utilizing their speed. For each
+athlete and week, we summed the total number of efforts in velocity
+bands V2 through V8, and computed their percentage of total weekly
+efforts in each velocity band. We also pulled each athlete’s weekly
+maximum velocity and all-time maximum velocity to compute weekly max
+velocity as a percentage of their all-time maximum. This percentage
+provides a clear metric to assess how effectively athletes are reaching
+their top-end speed. To ensure data quality, we excluded any weeks where
+the total number of efforts was zero.
+
+To explore trends over time, we created a function that generates a
+weekly plot for each athlete. Each plot includes a stacked bar chart
+showing the percentage distribution of weekly efforts across velocity
+bands (V2–V8), overlaid with a line and points representing the
+athlete’s weekly max velocity as a percentage of their all-time best.
+Color coding was used to visually differentiate intensity with
+green/yellow shades representing lower bands (V2-V4), yellow to orange
+representing mid to higher bands (V5-V6), and red shades representing
+the top bands (V7-V8).
+
+This dual-axis plot allows us to examine what bands athletes are hitting
+in relation to their top speeds. Each player reaches the defined
+velocity bands differently relative to their top speeds. For example,
+ID_11 rarely enters Bands 6 or higher, even when operating near 100% of
+their own max velocity.
+
+We next examined the relationships between weekly percent efforts in
+each band and percent of max velocity reached. An initial correlation
+analysis revealed that Bands V4 and V5 are slightly more positively
+associated with weekly top-speed attainment compared to higher bands
+(V6–V8), likely because athletes reach V4 and V5 more frequently. V2, by
+contrast, showed a moderately strong negative correlation with max
+velocity, suggesting that excessive time in this low-speed zone may
+detract from reaching higher velocities.
+
+Additionally, we visualized the relationship between band usage and
+percent of maximum velocity by reshaping the data into long format and
+creating a faceted scatterplot with loess smoothing lines. This
+visualization helps highlight how effort in each velocity band relates
+to percent of maximum velocity. 
+
+Our first attempt at a model used a single linear model to predict
+weekly top speed based on how much time players spent in each velocity
+band. However, the results weren’t useful — the model didn’t explain
+much of the variation, likely because players differ a lot in both their
+max velocities and how they use the bands. To address this, we broke the
+data into the three position groups — Skill, Combo, and Bigs — based on
+the idea that players in different roles move differently and may
+respond differently to training. By analyzing each group separately, we
+hoped to uncover clearer patterns.
+
+To visualize these differences, we constructed a faceted dual-axis time
+series plot. This plot tracks weekly average percent effort in each
+velocity band (left axis) alongside the group’s mean weekly top speed
+(scaled to match the primary axis, then transformed back on a secondary
+axis in m/s). The dual y-axis approach allowed us to compare two metrics
+on different scales in the same visual space. The faceting by position
+group provided a clearer view of group-specific trends.
+
+We observe that Bigs tend to have lower average maximum velocities and
+spend more time in the lower velocity bands. Across all position groups,
+there is a consistent trend: greater exposure to higher velocity bands
+is associated with higher weekly top speeds. While the increase in
+high-band usage among Bigs is less pronounced than the other groups, we
+still see that even modest increases in high-band exposure are linked to
+faster speeds. Conversely, increased time in lower bands generally
+corresponds to slower weekly max velocities.
+
+We then created separate linear models for each position group to
+examine how exposure to different velocity bands relates to current
+weekly peak velocity. For each group, velocity bands were aggregated
+into three simplified intensity categories—low, mid, and high—based on
+typical sprint thresholds relevant to that group.
+
+Specifically, for Skill players, the low band was defined as the average
+effort in V2, V3, and V4; the mid band as the average of V5 and V6; and
+the high band as the average of V7 and V8. For Bigs and Combo players,
+the low band included V2 and V3, the mid band included V4 through V6,
+and the high band was V7 and V8. This grouping allowed a
+position-specific evaluation of how athletes operated across different
+speed intensities.
+
+The bigs model was highly significant, explaining about 69% of the
+variance in weekly peak velocity. Low-band exposure had a significant
+negative coefficient (-0.041, p \< 0.001), indicating that increased
+low-intensity effort is associated with a decrease in peak velocity.
+Mid-band exposure was positively associated (0.368, p = 0.0018) and
+high-band exposure showed a strong positive relationship (3.59, p =
+0.0025), suggesting that moderate and especially high-speed efforts
+contribute to improved peak velocity for Bigs.
+
+The skill group model was also statistically significant, explaining
+about 36% of the variance. Low-band exposure had a significant negative
+effect (-0.0895, p = 0.024), again implying excessive low-intensity
+efforts may reduce peak speed. Mid-band exposure was positively related
+(0.585, p = 0.022), consistent with moderate-speed efforts supporting
+peak velocity. High-band exposure was positive but not significant
+(0.315, p = 0.38).
+
+The combo group model explained about 47% of the variance and was
+significant overall. High-band exposure was significantly positive
+(1.10, p = 0.0008), indicating that high-speed efforts strongly predict
+peak velocity. Low- and mid-band exposures were not significant, though
+mid-band showed a positive trend.
+
+Across all groups, low-band (low-intensity) efforts negatively associate
+with peak velocity, while mid- and especially high-band efforts have
+positive relationships, with stronger effects observed for Bigs and
+Combo groups. These results underscore the importance of emphasizing
+higher-intensity sprint exposures to maintain or improve peak sprinting
+performance, with position-specific differences in which bands
+contribute most.
+
 **Are relative efforts and bands more advantageous than the absolute
 bands provided?**
 
-**How does sprinting exposure (# of efforts, % max reached) relate to
+We created relative bands for each athlete as percentages of their
+maximum velocity. The bands are as follows: Band 2: 20-40%, Band 3:
+40-50%, Band 4: 50-60%, Band 5: 60-70%, Band 6: 70-80%, Band 7: 80-90%,
+Band 8: 90-100%. After calculating each band for every player, we remade
+the stacked bar chart from question 2, using the new relative bands
+instead of the absolute ones.
+
+This showed a much better distribution of band percentages and is easier
+to make insights from. Additionally, we made linear models for each of
+the three position groups. In the models, we predicted the percentage of
+maximum velocity using the percentage of effort in each velocity band as
+predictors, excluding band 3. The models revealed that the skill players
+benefitted most from having relative bands.
+
+**How does sprinting exposure (\# of efforts, % max reached) relate to
 incidence of hamstring injuries?**
+
+To start answering this, we took the graph from question 1 that showed
+when players were reaching above 90% the most and added in red vertical
+lines for injury occurrences. This allowed us to see when the most
+injuries occurred compared to the count of above 90% efforts. From this
+graph, we found that most of the injuries occurred at the highest counts
+of 90% effort. This led us to explore whether the number of sprint
+counts directly affected the occurrence of hamstring injuries. 
+
+We started by joining the injury dataset and the dataset including the
+count of 90% efforts. We then created lag variables that kept track of
+the previous week’s counts. Next, we created bar charts showing the
+number of injuries by sprint count for the week of the injury, the week
+before the injury, the two weeks before the injury, and over the last
+three weeks before the injury. The visuals showed that zero sprint
+counts had the highest number of injury occurrences. Next, we made
+tables and bar charts that displayed the injury rates for each sprint
+count. This painted a different picture as we discovered that the lower
+sprint counts had much higher occurrences than the larger sprint counts,
+resulting in lower injury rates. We then ran Fisher’s exact tests to
+determine if the proportion of injuries differed significantly between
+the different sprint counts. The p-values were high; therefore, we found
+no evidence of a statistically significant difference in injury rates
+between the groups. 
+
+We then looked into how the percentage of maximum velocity relates to
+hamstring injuries. We took the stacked bar chart with relative velocity
+bands from question 3 and added an blue vertical line indicator for the
+week that an injury happened. The results across the athletes varied.
+For some athletes, in the weeks leading up to the injury, the player had
+a low percentage of max velocity, while other athletes had weeks of a
+high percentage of max velocity. Next, we created scatterplots to show
+the percentage of max velocity by week for the injured and non-injured
+groups. We found that the injured group had a higher mean of percent max
+velocity (86.55) compared to the non-injured group (85.74). We noticed a
+similar trend when averaging over the two and three-week spans as well.
+However, after conducting two sample t-tests, we did not find a
+significant difference in the means of the injury and non-injury groups.
+We also ran t-tests for the change in velocity each of the last one, two
+and three weeks, as well as the sum of each of the last one, two and
+three weeks. None of these t-tests showed significant differences in the
+means between the injured and non-injured groups.
 
 #### Section 2: Running Imbalance
 
-**What is the variation at the team level and at each individual athlete level?**
+**What is the variation at the team level and at each individual athlete
+level?**
 
-  To understand the relationship that running imbalance has with time for the team as a whole, the average of the team's absolute value running imbalance were looked at over time. Since January 1, 2024, in general there were no large spikes in average absolute running imbalance for the team. Dates in which there is a noticeable spike are dates in which only 1 player recorded a running imbalance measurement and was therefore not indicative of the team as a whole. With this, all players in this analysis will be treated independently from one another.
+To understand the relationship that running imbalance has with time for
+the team as a whole, the average of the team's absolute value running
+imbalance were looked at over time. Since January 1, 2024, in general
+there were no large spikes in average absolute running imbalance for the
+team. Dates in which there is a noticeable spike are dates in which only
+1 player recorded a running imbalance measurement and was therefore not
+indicative of the team as a whole. With this, all players in this
+analysis will be treated independently from one another.
 
-  Looking ahead to see the relationship between running imbalance and HSI risk, the Running Imbalance data set was broken up into players who did and did not sustain a hamstring injury since January 1, 2024. From there, three different bootstraps were performed to understand the differences in running imbalance between the two groups.
-  
-  The first bootstrap was used to compare the the variance in running imbalance between the two groups, assuming that players are independent of one another. This bootstrap revealed that the group of players who sustained a hamstring injury have a greater variance in running imbalance than the group that did not sustain an injury with 90% confidence by 0.2310 to 3.4866. 
-  
-  Along this same thread, another bootstrap was constructed which calculated each player's variance from January 1, 2024 to the present. This means that each player had their own variance measurement and the variance wasn't calculated from the pooled bootstrap resampling algorithm. This bootstrap revealed that with 90% confidence, players who had a hamstring injury had a greater average variance than their uninjured counterparts between 0.7859 and 1.3262. This, like the last bootstrap supports the idea that players who sustained a hamstring injury have on average higher variance in their running imbalance than those who did not sustain a hamstring injury. 
-  
-  To understand whether or not preference for one side has a relationship with HSI risk, the third bootstrap looked at the average absolute value for each group. This bootstrap revealed that with 90% confidence the true difference in average absolute value between the groups is between 0.0535% and 0.3255%. While the difference between the two groups is statistically significant at the $\alpha$ = 0.1 significance level, the values are so small that in practice, using these values to try and differentiate the groups would be difficult considering that running imbalance ranges from 0% to 100%.
-  
-  This analysis also looked at the relationship that running imbalance had with the categories of positions. This analysis first looked at the average variance in running imbalance across all three categories (Bigs, Skills, and Combos) using the same bootstrapping algorithm from before. This bootstrap revealed that there was no statistically significant separation between any of the three groupings. This suggests that despite different physical demands for each position, they do not tend to vary differently from each other. 
-  
-  This analysis also wanted to see if there was a significant difference in the average absolute value running imbalance across the different categories. Using the same bootstrapping algorithm as before and comparing the estimated average absolute value in running imbalance for all of the categories we can see that Bigs and Combos have nearly identical estimations of the average absolute running imbalance. But, Skills actually have a significantly higher average absolute value running imbalance by about 0.2%. Again, while this is statistically significant, it's important to note that running imbalance ranges from 0% to 100% so a difference in running imbalance of 0.2% will be hard to detect in practice. This may also be just due to the different physical demands put onto Skills that are not put onto Bigs or Combos. 
-  
-  
-**What is a meaningful change? What red flags should go off when we see a week-to-week change in running imbalance?**
+Looking ahead to see the relationship between running imbalance and HSI
+risk, the Running Imbalance data set was broken up into players who did
+and did not sustain a hamstring injury since January 1, 2024. From
+there, three different bootstraps were performed to understand the
+differences in running imbalance between the two groups.
 
-  In order to see what would be a meaningful change in running imbalance, this analysis focused on what trends players had leading up to and directly following a hamstring injury. When looking at running imbalance values of players before and after an injury, there wasn't any sort of discernible trend that was applicable to most of the players. Instead what was found was that before and after a hamstring injury, running imbalance trends looked the same. 
-  
-  In order to further see if there is a relationship between running imbalance and HSI risk week-to-week, this analysis looked at the average running imbalance value per week leading up to and after a hamstring injury. This too revealed that there was no discernible pattern in average running imbalance value week-to-week and instances of hamstring injuries. 
-  
-  Finally, the same analysis was done but instead of using average running imbalance per week, the summary statistic used was variance in running imbalance per week. Like before, there was no pattern in the trends that could have been used to safely relate variance in running imbalance to HSI incidents. There was a somewhat common pattern of there being a jump in variance in the first week with data after a hamstring injury but this may be due to the fact that there is not as much data in that week and the jump in variance is due to that lack of data and how variance is calculated.
-  
-  We also wanted to see if there were significant detectable trends in running imbalance for athletes who sustained a hamstring injury. To see if there was, the Kendall rank correlation coefficient was calculated for all athletes with running imbalance data. These Kendall rank correlation coefficients were then put into a data set that was split into two groups, athletes who were injured and those who were not. These two data sets were then resampled 5000 times and the average absolute value Kendall rank correlation coefficient for the sample was calculated. This bootstrap revealed that there was not a statistically significant difference in Kendall rank correlation coefficient values for athletes who were injured and those who were not. In fact, the distributions for the average Kendall rank correlation coefficient values were almost identical. This implies that simply looking at trends in the data will not be indicative of whether or not a player will sustain a hamstring injury or not. 
-  
-  The absolute value was taken to eliminate the effect of the negative and positive Kendall rank correlation values from canceling each other out. Since a negative Kendall rank correlation values indicate a trend to prefer the left side more and a positive value indicates a growing preference for the right, using the absolute value of a trend will just indicate a growing preference toward one side.
-  
+The first bootstrap was used to compare the the variance in running
+imbalance between the two groups, assuming that players are independent
+of one another. This bootstrap revealed that the group of players who
+sustained a hamstring injury have a greater variance in running
+imbalance than the group that did not sustain an injury with 90%
+confidence by 0.2310 to 3.4866.
 
-**Is running imbalance sensitive enough of a metric to use as a prognosis tool versus a rehab tool?**
+Along this same thread, another bootstrap was constructed which
+calculated each player's variance from January 1, 2024 to the present.
+This means that each player had their own variance measurement and the
+variance wasn't calculated from the pooled bootstrap resampling
+algorithm. This bootstrap revealed that with 90% confidence, players who
+had a hamstring injury had a greater average variance than their
+uninjured counterparts between 0.7859 and 1.3262. This, like the last
+bootstrap supports the idea that players who sustained a hamstring
+injury have on average higher variance in their running imbalance than
+those who did not sustain a hamstring injury.
 
-  To address whether or not running imbalance alone is a sensitive enough to use as a prognosis tool compared to other rehab tools, this analysis tried to look at recovery times and relate them to patterns in running imbalance. Knowing that variance in running imbalance is strongly associated with HSI risk, this analysis tried to see if variance in running imbalance was associated with a recovery time greater than what was predicted using a prognosis tool. 
-  
-  This analysis used the variance in running imbalance from the date of the injury to the end of the prognosis time frame given. A model was then constructed using solely the variance in running imbalance to predict whether the player returned within the predicted time frame or not. This model showed that the slope coefficient associated with variance in running imbalance was statistically significant at the $\alpha$ = 0.01 significance level and had a value of -0.04135 suggesting that a lower variance in running imbalance throughout the recovery period was associated with a higher chance of recovering within the predicted time frame. When assessing the model though, the cross validated classification error rate was 0.4. This suggests that while there is a detectable difference in running imbalance variance for players who recovered in the predicted time frame and those who did not, variance in running imbalance isn't sensitive enough of a metric to be used as a prognosis tool.
-  
-  To see what the relationship between variance in running imbalance and returning to play in the predicted time frame or not, another bootstrap was performed. The data was split up into those who recovered in time and those who did not. Those two data sets were then resampled 5000 times and the average player variance in running imbalance was calculated from each sample. This revealed that the players who returned to play within the predicted time frame had a lower average predicted variance in running imbalance by about 1.2 than those who did not return with in the predicted time frame. So while variance in running imbalance is not a strong predictor for whether an athlete will return to play on time on its own, it may be used to supplement prognosis estimates made using rehab tools. 
+To understand whether or not preference for one side has a relationship
+with HSI risk, the third bootstrap looked at the average absolute value
+for each group. This bootstrap revealed that with 90% confidence the
+true difference in average absolute value between the groups is between
+0.0535% and 0.3255%. While the difference between the two groups is
+statistically significant at the $\alpha$ = 0.1 significance level, the
+values are so small that in practice, using these values to try and
+differentiate the groups would be difficult considering that running
+imbalance ranges from 0% to 100%.
 
+This analysis also looked at the relationship that running imbalance had
+with the categories of positions. This analysis first looked at the
+average variance in running imbalance across all three categories (Bigs,
+Skills, and Combos) using the same bootstrapping algorithm from before.
+This bootstrap revealed that there was no statistically significant
+separation between any of the three groupings. This suggests that
+despite different physical demands for each position, they do not tend
+to vary differently from each other.
+
+This analysis also wanted to see if there was a significant difference
+in the average absolute value running imbalance across the different
+categories. Using the same bootstrapping algorithm as before and
+comparing the estimated average absolute value in running imbalance for
+all of the categories we can see that Bigs and Combos have nearly
+identical estimations of the average absolute running imbalance. But,
+Skills actually have a significantly higher average absolute value
+running imbalance by about 0.2%. Again, while this is statistically
+significant, it's important to note that running imbalance ranges from
+0% to 100% so a difference in running imbalance of 0.2% will be hard to
+detect in practice. This may also be just due to the different physical
+demands put onto Skills that are not put onto Bigs or Combos.
+
+**What is a meaningful change? What red flags should go off when we see
+a week-to-week change in running imbalance?**
+
+In order to see what would be a meaningful change in running imbalance,
+this analysis focused on what trends players had leading up to and
+directly following a hamstring injury. When looking at running imbalance
+values of players before and after an injury, there wasn't any sort of
+discernible trend that was applicable to most of the players. Instead
+what was found was that before and after a hamstring injury, running
+imbalance trends looked the same.
+
+In order to further see if there is a relationship between running
+imbalance and HSI risk week-to-week, this analysis looked at the average
+running imbalance value per week leading up to and after a hamstring
+injury. This too revealed that there was no discernible pattern in
+average running imbalance value week-to-week and instances of hamstring
+injuries.
+
+Finally, the same analysis was done but instead of using average running
+imbalance per week, the summary statistic used was variance in running
+imbalance per week. Like before, there was no pattern in the trends that
+could have been used to safely relate variance in running imbalance to
+HSI incidents. There was a somewhat common pattern of there being a jump
+in variance in the first week with data after a hamstring injury but
+this may be due to the fact that there is not as much data in that week
+and the jump in variance is due to that lack of data and how variance is
+calculated.
+
+We also wanted to see if there were significant detectable trends in
+running imbalance for athletes who sustained a hamstring injury. To see
+if there was, the Kendall rank correlation coefficient was calculated
+for all athletes with running imbalance data. These Kendall rank
+correlation coefficients were then put into a data set that was split
+into two groups, athletes who were injured and those who were not. These
+two data sets were then resampled 5000 times and the average absolute
+value Kendall rank correlation coefficient for the sample was
+calculated. This bootstrap revealed that there was not a statistically
+significant difference in Kendall rank correlation coefficient values
+for athletes who were injured and those who were not. In fact, the
+distributions for the average Kendall rank correlation coefficient
+values were almost identical. This implies that simply looking at trends
+in the data will not be indicative of whether or not a player will
+sustain a hamstring injury or not.
+
+The absolute value was taken to eliminate the effect of the negative and
+positive Kendall rank correlation values from canceling each other out.
+Since a negative Kendall rank correlation values indicate a trend to
+prefer the left side more and a positive value indicates a growing
+preference for the right, using the absolute value of a trend will just
+indicate a growing preference toward one side.
+
+**Is running imbalance sensitive enough of a metric to use as a
+prognosis tool versus a rehab tool?**
+
+To address whether or not running imbalance alone is a sensitive enough
+to use as a prognosis tool compared to other rehab tools, this analysis
+tried to look at recovery times and relate them to patterns in running
+imbalance. Knowing that variance in running imbalance is strongly
+associated with HSI risk, this analysis tried to see if variance in
+running imbalance was associated with a recovery time greater than what
+was predicted using a prognosis tool.
+
+This analysis used the variance in running imbalance from the date of
+the injury to the end of the prognosis time frame given. A model was
+then constructed using solely the variance in running imbalance to
+predict whether the player returned within the predicted time frame or
+not. This model showed that the slope coefficient associated with
+variance in running imbalance was statistically significant at the
+$\alpha$ = 0.01 significance level and had a value of -0.04135
+suggesting that a lower variance in running imbalance throughout the
+recovery period was associated with a higher chance of recovering within
+the predicted time frame. When assessing the model though, the cross
+validated classification error rate was 0.4. This suggests that while
+there is a detectable difference in running imbalance variance for
+players who recovered in the predicted time frame and those who did not,
+variance in running imbalance isn't sensitive enough of a metric to be
+used as a prognosis tool.
+
+To see what the relationship between variance in running imbalance and
+returning to play in the predicted time frame or not, another bootstrap
+was performed. The data was split up into those who recovered in time
+and those who did not. Those two data sets were then resampled 5000
+times and the average player variance in running imbalance was
+calculated from each sample. This revealed that the players who returned
+to play within the predicted time frame had a lower average predicted
+variance in running imbalance by about 1.2 than those who did not return
+with in the predicted time frame. So while variance in running imbalance
+is not a strong predictor for whether an athlete will return to play on
+time on its own, it may be used to supplement prognosis estimates made
+using rehab tools.
 
 ### Code Implementation
 
-  The code for this project was designed to run sequentially. There are chunks throughout the analysis, usually at the end of each question, that remove objects from your environment that were created in the preceding analysis that are no longer needed. These were put in to increase efficiency and make it clear which objects were used for which analysis. This analysis also includes tools from the *gt*, *aod*, *lme4*, *boot*, *mgcv*, and *leaps* libraries and for someone cloning this repository, may require them to install the appropriate packages to access these libraries.
+The code for this project was designed to run sequentially. There are
+chunks throughout the analysis, usually at the end of each question,
+that remove objects from your environment that were created in the
+preceding analysis that are no longer needed. These were put in to
+increase efficiency and make it clear which objects were used for which
+analysis. This analysis also includes tools from the *gt*, *aod*,
+*lme4*, *boot*, *mgcv*, and *leaps* libraries and for someone cloning
+this repository, may require them to install the appropriate packages to
+access these libraries.
 
-  The first section is made up of the code that reads in and cleans the three data sets that will be used for the analysis. The Catapult data set will be used to look at running speeds, the Historical Running data
-set will be used for running imbalance and the Incident Report data will be used to look at injuries.
+The first section is made up of the code that reads in and cleans the
+three data sets that will be used for the analysis. The Catapult data
+set will be used to look at running speeds, the Historical Running data
+set will be used for running imbalance and the Incident Report data will
+be used to look at injuries.
 
-  The Catapult data set was filtered down to only include columns that had relevant statistics for the player such as their anonymous identifier and position and information about their velocities categorized through bands. The Historical Running data set only contained the anonymous ID, Date, and Running Imbalance value. So the only cleaning on this data set was to filter out rows with missing data. The Incident Report data set
-was filtered down to only look at Hamstring injuries(rows where column OSICS14.Code = "TM1"). All of the data sets were also filtered down to only include data from January 1, 2024 and on.
-  
-  For both sections, all of the plots were built using the ggplot2 library. Most of the data manipulation was done using dplyr and tidyverse tools and have comments to supplement. Since most of this project involved grouping players into different categories and plotting, this analysis used a lot of loops to cycle through different groupings. The second part of this analysis uses 5 different loops to create bootstrap distributions. All loops have comments to make it clear what they are for though. 
-  
+The Catapult data set was filtered down to only include columns that had
+relevant statistics for the player such as their anonymous identifier
+and position and information about their velocities categorized through
+bands. The Historical Running data set only contained the anonymous ID,
+Date, and Running Imbalance value. So the only cleaning on this data set
+was to filter out rows with missing data. The Incident Report data set
+was filtered down to only look at Hamstring injuries(rows where column
+OSICS14.Code = "TM1"). All of the data sets were also filtered down to
+only include data from January 1, 2024 and on.
+
+For both sections, all of the plots were built using the ggplot2
+library. Most of the data manipulation was done using dplyr and
+tidyverse tools and have comments to supplement. Since most of this
+project involved grouping players into different categories and
+plotting, this analysis used a lot of loops to cycle through different
+groupings. The second part of this analysis uses 5 different loops to
+create bootstrap distributions. All loops have comments to make it clear
+what they are for though.
 
 ### Final Results
 
 #### Section 1: Running Speeds
 
-**How often are athletes reaching ≥ 90% maximum velocity throughout a training season?**
+**How often are athletes reaching ≥ 90% maximum velocity throughout a
+training season?**
 
+We found that on average, players hit this threshold 11.8 times over the
+season with substantial variation across positions. Defensive backs
+reached this threshold most frequently (18.4) and offensive linemen
+reached it least often (6.8). Grouping position by role we found that
+skill players (DBs and WRs) reached this threshold an average of 17.1
+times, combo players (QBs, RBs, TEs, LBs) reached it an average of 9.8
+times, and bigs (DL and OL) reached it an average of 8.9 times. Per
+week, the threshold was reached an average of 31.1 times across the
+entire team. This reflects total occurrences (not unique players), as
+individuals can reach ≥ 90% max velocity multiple times in a week.
+Additionally, the frequency of reaching ≥ 90% max velocity varied by
+season phase. We found that the highest counts occurred during the
+pre-season and post-season weeks and lowest counts were observed during
+in-season weeks. This suggests that high-velocity efforts are more
+common during preparatory and concluding phases of the season, while
+in-season gameplay may involve fewer maximal sprint efforts.
 
+**Should we consider the number of sprinting efforts that athletes are
+completing?**
 
-**Should we consider the number of sprinting efforts that athletes are completing?**
+We refined this question to look into how often athletes are hitting
+which absolute velocity bands in relation to their top speeds. We
+created a stacked bar chart for each athlete that directly shows their
+weekly percentage of efforts in each velocity as well as their maximum
+velocity for that week as a percentage of their all-time maximum
+velocity. These graphs clearly show how each athlete hits which bands
+each week in relation to their top speeds, however many athletes do not
+reach some of the higher bands, thus leading to skewed graphs with more
+low band efforts. Additionally we identified correlations for how
+percent effort in each band relates to percent of max velocity. We found
+that Band 2 had a moderate negative effect, meaning the greater
+percentage of efforts in band 2 the lower their percent of max velocity
+will be. Band 3 did not have an effect on percent max velocity, and
+bands 4 and 5 had the highest positive correlations, likely because
+players reach these bands more often than higher ones. We then broke it
+down by position group and visualized the group’s mean percent in each
+band as well as the groups maximum velocity for each week. Based off of
+the visual and linear models, for the bigs, Band 6 showed the largest
+links to weekly max velocity. For skill players we found that higher
+percentages of efforts in Band 4 resulted in lower weekly max velocity.
+Combo players were harder to model for likely because this group
+contained a wide variety of positions.
 
+**Are relative efforts and bands more advantageous than the absolute
+bands provided?**
 
+We created relative bands for each athlete based on percentages of their
+all-time maximum velocity. (Band 2: 20-40%, Band 3: 40-50%, Band 4:
+50-60%, Band 5: 60-70%, Band 6: 70-80%, Band 7: 80-90%, and Band 8:
+90-100% of their all-time maximum velocity). We then recreated the
+stacked bar chart from question 2 for each athlete. The plots for the
+relative bands produced much more meaningful results compared to the
+absolute bands. The relative bands accounted for individual velocity
+differences and normalized effort distributions. We saw that athletes
+who originally showed a majority of efforts in lower absolute bands may
+have more percentage of efforts in higher relative bands. This means
+that relative bands can be more advantageous for analyzing, especially
+for athletes who have lower all-time maximums. If a player has an
+all-time max of 14, he will rarely reach absolute Band 6 and never reach
+any absolute bands higher. If we only look at this, we may come to the
+conclusion that this athlete is not spending any time at high running
+speeds. However, when looking at the athlete’s relative band efforts he
+may oftentimes be in Bands 7 and 8 and therefore between 80 and 100
+percent of his maximum, indicating that he does spend time in high
+running speeds. While absolute bands provided general thresholds, they
+failed to reflect individual variation in maximum velocity. 
 
-**Are relative efforts and bands more advantageous than the absolute bands provided?**
+**How does sprinting exposure (\# of efforts, % max reached) relate to
+incidence of hamstring injuries?**
 
+First we looked at how percent of maximum relates to the incidence of
+hamstring injuries. We added a blue vertical line indicating the week of
+an injury to our relative band stacked bar charts. Results between
+athletes varied. For some athletes, hamstring injuries occurred after
+weeks of low percent of max efforts. For other athletes, hamstring
+injuries occurred after weeks of high percent max efforts. After
+creating scatter plots and bar charts for average percent of max
+velocity for injury and non-injury groups, we noticed that the injury
+groups had higher averages for one, two, and three weeks previous.
+However, conducting t-tests on these groups revealed that there was no
+statistically significant difference in these group’s means. 
 
+Looking at a graph of reaching at least 90 percent sprint counts over
+time and overlaid with injury occurrence, we noticed that more injuries
+occurred in months when there were a high number of sprint counts.
+Exploring this further, we made bar charts that counted the number of
+injuries associated with each number of sprint counts for the week of an
+injury and the total number of sprint counts over the three weeks before
+an injury. For both the week of and three weeks before, zero sprint
+counts had the highest number of injury occurrences. However, we saw
+that zero sprint counts actually had one of the lowest injury rates.
+Furthermore, for the week of the injury three sprint counts had the
+highest injury rate (2%), while for the three weeks before the injury,
+five sprint counts had the highest injury rate (3.33%). Higher sprint
+counts (four and five for week of, and six-eight for three weeks
+before), had very low injury rates likely because they each of these
+counts had low sample sizes (n\>50). Fisher’s Exact tests revealed no
+statically significant association between sprint count groups and
+injury for both time periods. 
 
-**How does sprinting exposure (# of efforts, % max reached) relate to incidence of hamstring injuries?**
-
-
-
+It is important to note that the number of injury events observed in the
+data set is relatively low. As a result, the statistical power to detect
+significant differences in injury rates between groups is limited. This
+low event count increases the likelihood of a Type II error (failing to
+detect a true effect), and thus, non-significant results should be
+interpreted with caution. Future studies with larger sample sizes or
+more injury occurrences are needed to better assess the relationship
+between sprint exposure and injury risk
 
 #### Section 2: Running Imbalance
 
-**What is the variation at the team level and at each individual athlete level?**
+**What is the variation at the team level and at each individual athlete
+level?**
 
-  Each player tends to have a very unique variation in running imbalance. The team throughout time does not seem to have any larger spikes than normal in running imbalance suggesting that at no point in time did the team have a large shift in running imbalance all together. 
-  
-  Through the use of three different bootstrap algorithms, we found that players who sustained a hamstring injury have a statistically significantly higher average variance in running imbalance and average absolute value running imbalance than players who did not sustain a hamstring injury. The difference in average absolute value in running imbalance was very small though and it would be hard to differentiate the groups in practice only using the one estimated difference. 
-  
-  The different categories of positions tended to have the same average variance when estimated using a bootstrap method. Using the same bootstrapping method as before but estimating the average absolute value of running imbalance for each of the three categories revealed the Bigs and Combos had nearly identical estimates of the average running imbalance value of around 2.75%. But Skills had a statistically significant higher average absolute value running imbalance of around 3.15%. This may be due to the differing physical demands put onto the different categories of positions where Skills may be more inclined to favor one leg over another to accomplish their goal. 
-  
+Each player tends to have a very unique variation in running imbalance.
+The team throughout time does not seem to have any larger spikes than
+normal in running imbalance suggesting that at no point in time did the
+team have a large shift in running imbalance all together.
 
-**What is a meaningful change? What red flags should go off when we see a week-to-week change in running imbalance?**
+Through the use of three different bootstrap algorithms, we found that
+players who sustained a hamstring injury have a statistically
+significantly higher average variance in running imbalance and average
+absolute value running imbalance than players who did not sustain a
+hamstring injury. The difference in average absolute value in running
+imbalance was very small though and it would be hard to differentiate
+the groups in practice only using the one estimated difference.
 
-  There were no discernible trends in running imbalance that were clearly indicative of an impending HSI. Instead, for players that sustained a hamstring injury since January 1, 2024, their trends in running imbalance looked almost identical before and after their injury. This supports the idea that instances of HSI aren't necessarily due to changes in running technique or side preference but instead risk is associated with someone's innate running technique. Said in other words, short term changes in running imbalance do not seem related to hamstring injuries. Instead, looking at a player's variance across their career tends to be more indicative of whether or not they would sustain a hamstring injury. 
-  
-  Along this same vein, players who sustained a hamstring injury and those who did not did not have a statically significant difference in Kendall rank correlation coefficients. Put simply, this means that players who sustained a hamstring injury did not have a more detectable monotonic trend (positive or negative) than their uninjured counterparts. This means that simply looking at running imbalance trends were not indicative of whether or not a player would sustain an injury. This supports the idea from before where the actual values of running imbalance are not strongly associated with injury risk, it's the variability in running imbalance that is stronger associated. 
+The different categories of positions tended to have the same average
+variance when estimated using a bootstrap method. Using the same
+bootstrapping method as before but estimating the average absolute value
+of running imbalance for each of the three categories revealed the Bigs
+and Combos had nearly identical estimates of the average running
+imbalance value of around 2.75%. But Skills had a statistically
+significant higher average absolute value running imbalance of around
+3.15%. This may be due to the differing physical demands put onto the
+different categories of positions where Skills may be more inclined to
+favor one leg over another to accomplish their goal.
 
+**What is a meaningful change? What red flags should go off when we see
+a week-to-week change in running imbalance?**
 
-**Is running imbalance sensitive enough of a metric to use as a prognosis tool versus a rehab tool?**
+There were no discernible trends in running imbalance that were clearly
+indicative of an impending HSI. Instead, for players that sustained a
+hamstring injury since January 1, 2024, their trends in running
+imbalance looked almost identical before and after their injury. This
+supports the idea that instances of HSI aren't necessarily due to
+changes in running technique or side preference but instead risk is
+associated with someone's innate running technique. Said in other words,
+short term changes in running imbalance do not seem related to hamstring
+injuries. Instead, looking at a player's variance across their career
+tends to be more indicative of whether or not they would sustain a
+hamstring injury.
 
-  Earlier analysis identified that variance in running imbalance across an athlete's career at CU Boulder tended to have the strongest relationship with HSI risk. For this reason, a model was built using variance in running imbalance from the date of the injury to the end of the prognosis time frame to predict whether or not the player returned to play within the predicted time frame. This model resulted in a statistically significant slope coefficient at the $\alpha$ = 0.01 significance level suggesting that there is a strong relationship between variance and the likelihood of the player returning within the predicted time frame. The value of the slope coefficient was -0.04135 which in the context of the model suggested that lower variance was associated with a higher likelihood of returning to play within the prognosis time frame. When this model was cross validated though, it had a classification error rate of 0.4 meaning that it may not be strong enough to make accurate definitive decisions about whether or not a player would return on time or not. 
-  
-  To see the relationship that variance in running imbalance had with return to play times, a bootstrap was performed to estimate the mean variance in running imbalance for the two groups (returned to play within the predicted time frame or not). This bootstrap revealed that players who did not return within the prognosis time frame had a higher average variance in running imbalance by 1.2 which is statistically significant at the $\alpha$ = 0.01 significance level. With there being a strong distinction between the two groups, but not enough sensitivity to make consistently accurate predictions, we suggest that variance in running imbalance throughout the recovery period could be used to supplement prognosis estimates made with rehab tools. 
+Along this same vein, players who sustained a hamstring injury and those
+who did not did not have a statically significant difference in Kendall
+rank correlation coefficients. Put simply, this means that players who
+sustained a hamstring injury did not have a more detectable monotonic
+trend (positive or negative) than their uninjured counterparts. This
+means that simply looking at running imbalance trends were not
+indicative of whether or not a player would sustain an injury. This
+supports the idea from before where the actual values of running
+imbalance are not strongly associated with injury risk, it's the
+variability in running imbalance that is stronger associated.
+
+**Is running imbalance sensitive enough of a metric to use as a
+prognosis tool versus a rehab tool?**
+
+Earlier analysis identified that variance in running imbalance across an
+athlete's career at CU Boulder tended to have the strongest relationship
+with HSI risk. For this reason, a model was built using variance in
+running imbalance from the date of the injury to the end of the
+prognosis time frame to predict whether or not the player returned to
+play within the predicted time frame. This model resulted in a
+statistically significant slope coefficient at the $\alpha$ = 0.01
+significance level suggesting that there is a strong relationship
+between variance and the likelihood of the player returning within the
+predicted time frame. The value of the slope coefficient was -0.04135
+which in the context of the model suggested that lower variance was
+associated with a higher likelihood of returning to play within the
+prognosis time frame. When this model was cross validated though, it had
+a classification error rate of 0.4 meaning that it may not be strong
+enough to make accurate definitive decisions about whether or not a
+player would return on time or not.
+
+To see the relationship that variance in running imbalance had with
+return to play times, a bootstrap was performed to estimate the mean
+variance in running imbalance for the two groups (returned to play
+within the predicted time frame or not). This bootstrap revealed that
+players who did not return within the prognosis time frame had a higher
+average variance in running imbalance by 1.2 which is statistically
+significant at the $\alpha$ = 0.01 significance level. With there being
+a strong distinction between the two groups, but not enough sensitivity
+to make consistently accurate predictions, we suggest that variance in
+running imbalance throughout the recovery period could be used to
+supplement prognosis estimates made with rehab tools.
