@@ -1,9 +1,3 @@
----
-editor_options: 
-  markdown: 
-    wrap: 72
----
-
 ## Running Speeds and Running Imbalance in the CU Boulder Football Team
 
 ### Member Contributions
