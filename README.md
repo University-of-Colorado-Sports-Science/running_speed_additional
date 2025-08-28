@@ -1,5 +1,9 @@
 ## Running Speeds and Running Imbalance in the CU Boulder Football Team
 
+link to video presentation:
+
+https://www.youtube.com/watch?v=4PQE-0QavQs&list=PLkBtKXV74kfnFd-2O_5z6anlQN4wRFwT9&index=4
+
 ### Member Contributions
 
 **Ian McElveen**: Ian's contributions focused on analyzing running speeds and their relationship to performance and injury. This included examining how often athletes reached ≥90% of their maximum velocity across the training season, creating visualizations by player, position, and position group to highlight trends. Additionally, he analyzed sprint effort distributions across absolute and relative velocity bands, developed position-specific linear models, and created dual-axis plots to assess how exposure to different speed bands related to peak sprint velocity. Finally, Ian integrated injury data with sprint exposure metrics, using lagged variables, visualizations, and statistical tests to investigate whether sprint counts or velocity exposures were associated with hamstring injuries.
