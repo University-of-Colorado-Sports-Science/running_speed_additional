@@ -20,6 +20,8 @@ The goal is to do the same analysis of reaching 90% maximums, but for starters/k
 
 
 ```{r}
+
+
 # Load in Catapult data set
 
 catapult <- read_csv("./Datasets/Catapult Session - Outdoor FB.csv")
