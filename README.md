@@ -1,6 +1,6 @@
 ## Running Speeds and Running Imbalance in the CU Boulder Football Team
 
-link to video presentation:
+Video presentation link:
 
 https://www.youtube.com/watch?v=4PQE-0QavQs&list=PLkBtKXV74kfnFd-2O_5z6anlQN4wRFwT9&index=4
 
