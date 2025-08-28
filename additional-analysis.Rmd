@@ -1,0 +1,157 @@
+---
+title: "additional-analysis"
+output: html_document
+date: "2025-08-28"
+---
+
+```{r}
+# Authors: Ian McElveen
+# Creation date: 8/28/2025
+
+# LAST UPDATED: 8/28/2025
+
+# Libraries:
+library(tidyverse)
+```
+
+## 90% Max Opportunities for Starters/key players
+
+The goal is to do the same analysis of reaching 90% maximums, but for starters/key players. Our previous analysis showed that during the in-season, when games are being played, we have a very low count of reaching 90% of a player's all-time maximum velocity. We hypothesize that the reason that counts were lower during the in-season is because less players get opportunities in practices and especially in games. Therefore the in-season dip in counts is because less players have opportunities to have a 90% count, not because of a change in training methods.
+
+
+```{r}
+# Load in Catapult data set
+
+catapult <- read_csv("./Datasets/Catapult Session - Outdoor FB.csv")
+```
+
+```{r}
+# GAME 1: vs. NDSU
+
+# Filter data set just to include the first game so we can explore easier
+ndsu <- catapult |>
+  filter(Session.Date == "8/29/2024") |>
+  filter(Period.Name %in% c("1ST QUARTER", "2ND QUARTER", "3RD QUARTER", "4TH QUARTER")) |>
+  select(anon_id, Date, Primary.Position, Activity, Period.Name, Total.Distance, Total.Acceleration.Efforts, Hit.90.Percent.Max, Hit.Max.Velocity., Maximum.Velocity, All.Time.Max.Velocity)
+
+
+# Calculate total distance of game for each player
+ndsu_totals <- ndsu |>
+  group_by(anon_id, Date) |>
+  summarise(
+    Total.Distance.Game = sum(Total.Distance, na.rm = TRUE),
+    Hit.90.Percent.Max = first(Hit.90.Percent.Max),
+    .groups = "drop"
+  )
+
+
+# Plot 
+ggplot(ndsu_totals, aes(x = reorder(anon_id, Total.Distance.Game), y = Total.Distance.Game, color = Hit.90.Percent.Max)) +
+  geom_point() +
+  scale_color_manual(values = c("Yes" = "green", "No" = "red")) +
+  labs(title = "Hit 90 Percent Max (Yes/No) vs. Total Game Distance - NDSU",
+       x = "anon_id", y = "Total Game Distance") +
+  theme_classic() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+# T-test between Hit.90 groups (no and yes)
+t.test(Total.Distance.Game ~ Hit.90.Percent.Max, data = ndsu_totals)
+
+# No group has mean of 2702 total game distance
+# Yes group has mean of 3461 total game distance
+# Sig at 0.1 level
+
+
+# Logistic Regression:
+
+ndsu_totals <- ndsu_totals |>
+  mutate(Hit90 = ifelse(Hit.90.Percent.Max == "Yes", 1, 0))
+
+model <- glm(Hit90 ~ Total.Distance.Game, data = ndsu_totals, family = binomial)
+summary(model)
+
+exp(coef(model))
+
+```
+For the NDSU game, it doesn't seem like more opportunity (greater total game distance) leads to hitting 90 percent of max.
+
+
+
+
+```{r}
+# UCF game doesn't have quarter names
+ucf <- catapult |>
+  filter(Session.Date == "9/28/2024") |>
+  select(anon_id, Session.Date, Primary.Position, Activity, Period.Name, Total.Distance, Total.Acceleration.Efforts, Hit.90.Percent.Max, Hit.Max.Velocity., Maximum.Velocity, All.Time.Max.Velocity) |>
+  group_by(Session.Date, anon_id) |>
+  summarise(
+    Total.Distance.Game = sum(Total.Distance, na.rm = TRUE),
+    Hit.90.Percent.Max = first(Hit.90.Percent.Max),
+    .groups = "drop"
+  )
+ucf$Session.Date <- as.Date(ucf$Session.Date, format = "%m/%d/%Y")  
+
+
+# Convert to Date
+game_dates <- as.Date(c("8/29/2024","9/7/2024","9/14/2024","9/21/2024",
+                        "9/28/2024","10/12/2024","10/19/2024","10/26/2024",
+                        "11/9/2024","11/16/2024","11/23/2024","11/29/2024"),
+                      format = "%m/%d/%Y")
+
+games_data <- catapult |>
+  mutate(Session.Date = as.Date(Session.Date, format = "%m/%d/%Y")) |>  # ensure dates
+  filter(Session.Date %in% game_dates) |>
+  filter(Period.Name %in% c("1ST QUARTER", "2ND QUARTER", "3RD QUARTER", "4TH QUARTER", "1st Quarter", "4th Quarter", "2nd Quarter", "3rd Quarter", "4th Quarter","1st QUARTER", "2nd QUARTER", "3rd QUARTER", "4th QUARTER")) |>
+  group_by(Session.Date, anon_id) |>
+  summarise(
+    Total.Distance.Game = sum(Total.Distance, na.rm = TRUE),
+    Hit.90.Percent.Max = first(Hit.90.Percent.Max),
+    .groups = "drop"
+  ) |>
+  arrange(Session.Date)
+
+
+# Convert games_data (if not already Date)
+games_data <- games_data %>%
+  mutate(Session.Date = as.Date(Session.Date, format = "%m/%d/%Y"))
+
+# Convert ucf dataset to Date too
+ucf <- ucf %>%
+  mutate(Session.Date = as.Date(Session.Date, format = "%m/%d/%Y"))
+
+# Combine with UCF game data
+games_data <- bind_rows(games_data, ucf)
+
+# Ensure Session.Date is a Date for the combined dataset
+games_data <- games_data %>%
+  mutate(Session.Date = as.Date(Session.Date, origin = "1970-01-01"))
+
+# Get unique dates
+unique_dates <- sort(unique(games_data$Session.Date))
+
+# Loop over dates
+for (d in unique_dates) {
+  
+  # Ensure d is Date (important!)
+  d <- as.Date(d, origin = "1970-01-01")
+  
+  # Filter data for this date
+  df_sub <- games_data %>% filter(Session.Date == d)
+  
+  # Create plot
+  p <- ggplot(df_sub, aes(x = reorder(anon_id, Total.Distance.Game),
+                          y = Total.Distance.Game,
+                          color = Hit.90.Percent.Max)) +
+    geom_point(size = 3) +
+    scale_color_manual(values = c("Yes" = "green", "No" = "red")) +
+    labs(title = paste0("Hit 90% Max vs. Total Game Distance - ", format(d, "%b %d, %Y")),
+         x = "anon_id", y = "Total Game Distance") +
+    theme_classic() +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1))
+  
+  print(p)
+}
+```
+
+Calculate total game distance over all games for each player.
+
