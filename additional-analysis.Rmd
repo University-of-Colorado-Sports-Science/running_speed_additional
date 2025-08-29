@@ -432,3 +432,20 @@ ggplot(weekly_90_counts, aes(x = week, y = weekly_hits)) +
 ```
 
 * Note: This graph only includes players who reached at least 10000 total game distance yards during the 2024-25 season.
+
+After changing which players were involved in our analysis, we see a much different trend of 90% counts over the season. We see a steady decrease as the season goes on instead of a U shape that we saw before.
+
+
+
+
+# Does this change our HSI analysis?
+
+Since our athletes have changed, lets look to see if this changes the results we found in our original analysis looking at hamstring injuries.
+
+```{r}
+# Load in incident data set
+incident <- read_csv("./Datasets/Incident Report FB.csv")
+```
+
+
+
