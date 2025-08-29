@@ -8,7 +8,7 @@ date: "2025-08-28"
 # Authors: Ian McElveen
 # Creation date: 8/28/2025
 
-# LAST UPDATED: 8/28/2025
+# LAST UPDATED: 8/29/2025
 
 # Libraries:
 library(tidyverse)
@@ -21,7 +21,6 @@ The goal is to do the same analysis of reaching 90% maximums, but for starters/k
 
 ```{r}
 # Load in Catapult data set
-
 catapult <- read_csv("./Datasets/Catapult Session - Outdoor FB.csv")
 ```
 
@@ -79,20 +78,27 @@ For the NDSU game, it doesn't seem like more opportunity (greater total game dis
 
 
 ```{r}
+# Plots for each game
+
+
 # UCF game doesn't have quarter names
 ucf <- catapult |>
   filter(Session.Date == "9/28/2024") |>
-  select(anon_id, Session.Date, Primary.Position, Activity, Period.Name, Total.Distance, Total.Acceleration.Efforts, Hit.90.Percent.Max, Hit.Max.Velocity., Maximum.Velocity, All.Time.Max.Velocity) |>
+  select(anon_id, Session.Date, Primary.Position, Activity, Period.Name,
+         Total.Distance, Total.Acceleration.Efforts, Hit.90.Percent.Max,
+         Hit.Max.Velocity., Maximum.Velocity, All.Time.Max.Velocity) |>
   group_by(Session.Date, anon_id) |>
   summarise(
     Total.Distance.Game = sum(Total.Distance, na.rm = TRUE),
     Hit.90.Percent.Max = first(Hit.90.Percent.Max),
     .groups = "drop"
   )
-ucf$Session.Date <- as.Date(ucf$Session.Date, format = "%m/%d/%Y")  
 
+# Make sure UCF dates are Date objects
+ucf <- ucf %>%
+  mutate(Session.Date = as.Date(Session.Date, format = "%m/%d/%Y"))  
 
-# Convert to Date
+# Define game dates you care about
 game_dates <- as.Date(c("8/29/2024","9/7/2024","9/14/2024","9/21/2024",
                         "9/28/2024","10/12/2024","10/19/2024","10/26/2024",
                         "11/9/2024","11/16/2024","11/23/2024","11/29/2024"),
@@ -101,7 +107,9 @@ game_dates <- as.Date(c("8/29/2024","9/7/2024","9/14/2024","9/21/2024",
 games_data <- catapult |>
   mutate(Session.Date = as.Date(Session.Date, format = "%m/%d/%Y")) |>  # ensure dates
   filter(Session.Date %in% game_dates) |>
-  filter(Period.Name %in% c("1ST QUARTER", "2ND QUARTER", "3RD QUARTER", "4TH QUARTER", "1st Quarter", "4th Quarter", "2nd Quarter", "3rd Quarter", "4th Quarter","1st QUARTER", "2nd QUARTER", "3rd QUARTER", "4th QUARTER")) |>
+  filter(Period.Name %in% c("1ST QUARTER", "2ND QUARTER", "3RD QUARTER", "4TH QUARTER",
+                            "1st Quarter", "4th Quarter", "2nd Quarter", "3rd Quarter",
+                            "1st QUARTER", "2nd QUARTER", "3rd QUARTER", "4th QUARTER")) |>
   group_by(Session.Date, anon_id) |>
   summarise(
     Total.Distance.Game = sum(Total.Distance, na.rm = TRUE),
@@ -110,41 +118,53 @@ games_data <- catapult |>
   ) |>
   arrange(Session.Date)
 
-
-# Convert games_data (if not already Date)
+# Ensure games_data has proper Date
 games_data <- games_data %>%
-  mutate(Session.Date = as.Date(Session.Date, format = "%m/%d/%Y"))
-
-# Convert ucf dataset to Date too
-ucf <- ucf %>%
-  mutate(Session.Date = as.Date(Session.Date, format = "%m/%d/%Y"))
+  mutate(Session.Date = as.Date(Session.Date))
 
 # Combine with UCF game data
 games_data <- bind_rows(games_data, ucf)
 
-# Ensure Session.Date is a Date for the combined dataset
-games_data <- games_data %>%
-  mutate(Session.Date = as.Date(Session.Date, origin = "1970-01-01"))
-
-# Get unique dates
+# Build schedule using actual dates from games_data
 unique_dates <- sort(unique(games_data$Session.Date))
+
+schedule <- tibble(
+  Session.Date = unique_dates,
+  opponent = c(
+    "North Dakota State", "Nebraska", "Colorado State",
+    "Baylor", "UCF", "Kansas State",
+    "Arizona", "Cincinnati", "Texas Tech",
+    "Utah", "Kansas", "Oklahoma State"
+  )
+)
+
+# Join opponent names into games_data
+games_data <- games_data %>%
+  left_join(schedule, by = "Session.Date")
+
+
+
+
 
 # Loop over dates
 for (d in unique_dates) {
   
-  # Ensure d is Date (important!)
-  d <- as.Date(d, origin = "1970-01-01")
+  # Ensure d is Date
+  d <- as.Date(d)
   
   # Filter data for this date
   df_sub <- games_data %>% filter(Session.Date == d)
+  
+  # Get opponent name
+  opponent_name <- unique(df_sub$opponent)
   
   # Create plot
   p <- ggplot(df_sub, aes(x = reorder(anon_id, Total.Distance.Game),
                           y = Total.Distance.Game,
                           color = Hit.90.Percent.Max)) +
-    geom_point(size = 3) +
+    geom_point() +
     scale_color_manual(values = c("Yes" = "green", "No" = "red")) +
-    labs(title = paste0("Hit 90% Max vs. Total Game Distance - ", format(d, "%b %d, %Y")),
+    labs(title = paste0("Hit 90% Max vs. Total Game Distance - ", opponent_name),
          x = "anon_id", y = "Total Game Distance") +
     theme_classic() +
     theme(axis.text.x = element_text(angle = 90, hjust = 1))
@@ -155,3 +175,260 @@ for (d in unique_dates) {
 
 Calculate total game distance over all games for each player.
 
+```{r}
+# Plots and tests for all games together
+
+
+# Calculate total distance for all games and if reached 90% max for any game for all players
+player_totals <- games_data |>
+  group_by(anon_id) |>
+  summarise(
+    total_distance_all_games = sum(Total.Distance.Game, na.rm = TRUE),
+            reached_90_max = if_else(any(Hit.90.Percent.Max == "Yes"), "Yes", "No")
+    ) |>
+  arrange(desc(total_distance_all_games))
+
+# Plot
+ggplot(player_totals, aes(x = reorder(anon_id, total_distance_all_games), y = total_distance_all_games, color = reached_90_max)) +
+  geom_point() +
+  scale_color_manual(values = c("Yes" = "green", "No" = "red")) +
+  labs(title = "Hit 90% Max vs. Total Distance (All Games)",
+       x = "anon_id", y = "Total Distance") +
+  theme_classic() +
+    theme(axis.text.x = element_text(angle = 90))
+
+
+ggplot(player_totals, aes(x = reached_90_max, y = total_distance_all_games, fill = reached_90_max)) +
+  geom_boxplot(alpha = 0.7) +
+  geom_jitter(width = 0.1, alpha = 0.5) +
+  scale_fill_manual(values = c("Yes" = "green", "No" = "red")) +
+  labs(title = "Total Distance vs. Reached 90% Max",
+       x = "Reached 90% Max", y = "Total Distance (All Games)") +
+  theme_classic()
+
+# T-test
+t.test(total_distance_all_games ~ reached_90_max, data = player_totals)
+
+
+# Convert reached_90_max to 0/1
+player_totals <- player_totals |>
+  mutate(reached_90_max_num = if_else(reached_90_max == "Yes", 1, 0))
+
+# Model
+model <- glm(reached_90_max_num ~ total_distance_all_games,
+                   data = player_totals,
+                   family = binomial)
+
+summary(model)
+```
+  Our t-test showed a statically significant difference in total_distance_all_games between the groups.
+Players who reached 90% of their maximum velocity during games had significantly greater total game distance than those who did not. The difference is large (~19,650) and statistically reliable (p < 0.001).
+
+  Our linear regression model shows that players who run more distance across games are significantly more likely to reach 90% of their max velocity. The relationship is small per yard, but scales up meaningfully across thousands of yards.
+  
+For games, more opportunity (yards) equals higher chance of hitting 90% of max.
+
+
+
+
+#### Now we will explore what happens to our 90% count over time graph.
+
+Our 90% count over time graph in our original analysis showed that in weeks during the season, we had the lowest 90% counts. 
+We believe this may be because less players have opportunity during those weeks. In-season, practices and games opportunities are mostly taken by the top guys in each position. Therefore, other players would not have the opportunity to hit 90% of their max, leading the in-season to have low counts. Less players getting opportunity = less players hitting 90% of their max.
+
+We will explore this by filtering out players who had less than 10,000 yards of total distance across all of the games in the 2024-25 season. Then we will remake the 90% count over time graph, this time it will only include those top players that get game and practice opportunity.
+
+```{r}
+
+# Get player ids of athletes who did not reach at least 10,000 yards of total distance throughout the season.
+high_distance_players <- player_totals |>
+  filter(total_distance_all_games > 10000) |>
+  pull(anon_id)
+
+# Create data set with those players (don't filter the current data set because we need different data than what our current data set includes)
+catapult <- catapult |>
+  mutate(Date = as.Date(Date, "%m/%d/%Y"))
+
+top_players <- catapult |>
+  filter(anon_id %in% high_distance_players) |>
+  filter(Date >= as.Date("2024-06-30") & Date <= as.Date("2025-07-01")) |> # Filter for training season
+  filter(Hit.90.Percent.Max == "Yes") |>
+  distinct(anon_id, Date, Primary.Position) |>
+  group_by(anon_id, Primary.Position) |>
+  summarise(times_hit_90 = n(), .groups = "drop") |>
+  mutate(
+    Position_Group = case_when(
+      Primary.Position %in% c("QB", "LB", "TE", "RB") ~ "COMBO",
+      Primary.Position %in% c("OL", "DL", "DE") ~ "BIGS",
+      Primary.Position %in% c("WR", "DB", "DB, WR") ~ "SKILL",
+      TRUE ~ "OTHER"
+    ))
+
+
+# Plot of all players' frequencies
+ggplot(top_players, aes(x = anon_id, y = times_hit_90)) +
+  geom_bar(stat = "identity", fill = "#CFB87C") +
+  geom_hline(yintercept = mean(top_players$times_hit_90), 
+             linetype = "dashed", color = "#565A5C", linewidth = 0.5) +
+  labs(title = "Player Counts for Achieving ≥ 90% of Maximum Velocity During 2024–25 Season", 
+       subtitle = paste("Team Average:", round(mean(top_players$times_hit_90), 1)),
+       x = "Athlete ID", y = "Times ≥ 90%") +
+  theme_classic() +
+  theme(axis.text.x = element_text(angle = 90))
+```
+Team average increased from 11.8 to 13.6. There still are some players with really low counts here.
+
+```{r}
+# Plots for each position
+
+# Get the overall team average once from hit_90_counts
+team_avg <- mean(top_players$times_hit_90)
+
+# Define  positions to loop through
+positions <- unique(top_players$Primary.Position)
+
+# Plotting function:
+plot_hit_90_by_position <- function(pos) {
+  position_data <- top_players %>%
+    filter(Primary.Position == pos)
+  
+  pos_avg <- mean(position_data$times_hit_90)
+  
+  ggplot(position_data, aes(x = anon_id, y = times_hit_90)) +
+    geom_bar(stat = "identity", fill = "#CFB87C") +
+    geom_text(aes(label = times_hit_90), vjust = -0.5, size = 3.5) +
+    geom_hline(yintercept = pos_avg, linetype = "dashed", color = "#565A5C") +
+    annotate("text", x = 1, y = pos_avg + 0.5, 
+             label = "Pos Avg", color = "#565A5C", size = 3, hjust = 0) +
+    geom_hline(yintercept = team_avg, linetype = "dashed", color = "#000000") +
+    annotate("text", x = 1, y = team_avg + 0.5, 
+             label = "Team Avg", color = "#000000", size = 3, hjust = 0) +
+    labs(title = paste("Times ≥90% Max Velocity –", pos),
+         subtitle = paste0("Position Avg: ", round(pos_avg, 1),
+                           " | Team Avg: ", round(team_avg, 1)),
+         y = "Count",
+         x = "anon_id") +
+    theme_classic() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+}
+
+# Loop through each position and print the plot
+plots_by_position <- lapply(positions, function(pos) {
+  print(plot_hit_90_by_position(pos))
+})
+```
+DL: was 10.8, now 11.2
+OL: was 6.8, now 7.5
+WR: was 15.7, now 23.1
+DB: was 18.4, now 20.5
+LB: was 8.9, now 7.3
+RB: was 10.5, now 6.7
+QB: was 9.8, now 3
+TE: was 8.4, now 7.5
+
+```{r}
+# Make facet plot for position groups so that it fits on the presentation slides better.
+
+# Calculate averages for each group and the team
+group_avgs <- top_players %>%
+  group_by(Position_Group) %>%
+  summarise(group_avg = mean(times_hit_90))
+
+team_avg <- mean(top_players$times_hit_90)
+
+# Join group averages back to the main data
+plot_data <- top_players %>%
+  left_join(group_avgs, by = "Position_Group")
+
+# Create label data with formatted strings
+avg_labels <- plot_data %>%
+  group_by(Position_Group) %>%
+  summarise(
+    group_avg = unique(group_avg),
+    team_avg = team_avg,
+    label_x = 1,
+    group_label_y = group_avg + 1,
+    team_label_y = team_avg + 1,
+    group_label = round(group_avg, 1),
+    team_label = round(team_avg, 1),
+    .groups = "drop"
+  )
+
+# Plot
+ggplot(plot_data, aes(x = anon_id, y = times_hit_90)) +
+  geom_bar(stat = "identity", fill = "#CFB87C") +
+  geom_hline(aes(yintercept = group_avg), linetype = "dashed", color = "#000000") +
+  geom_hline(yintercept = team_avg, linetype = "dotted", color = "#565A5C") +
+  geom_text(data = avg_labels, aes(x = label_x, y = group_label_y, label = group_label),
+            inherit.aes = FALSE, hjust = 0, size = 3, color = "#000000") +
+  geom_text(data = avg_labels, aes(x = label_x, y = team_label_y, label = team_label),
+            inherit.aes = FALSE, hjust = 0, size = 3, color = "#565A5C") +
+  facet_wrap(~ Position_Group, scales = "free_x") +
+  labs(title = "Times Reached ≥90% Max Velocity by Position Group",
+       y = "Count", x = "anon_id") +
+  theme_classic() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+Bigs: was 8.9, now 9.9
+Combo: was 9.3, now 6.5
+Skill: was 17.1, 21.6
+
+```{r}
+# >90% counts over the course of the season
+
+# Trying to find out when are players reaching above 90% the most
+
+# Create dataset that has the count of >90% of each day
+daily_90_counts <- catapult |>
+  filter(anon_id %in% high_distance_players) |>
+  filter(Date >= as.Date("2024-06-30") & Date <= as.Date("2025-07-01")) |>
+  filter(Hit.90.Percent.Max == "Yes") |>
+  distinct(anon_id, Date) |>
+  group_by(Date) |>
+  summarise(daily_hits = n())
+
+# Plot
+ggplot(daily_90_counts, aes(x = Date, y = daily_hits)) +
+  geom_line(color = "#CFB87C", linewidth = 1) +
+  geom_smooth(method = "loess", se = FALSE, color = "#565A5C", linetype = "dashed") +
+  labs(title = "Daily Count of Players Reaching ≥ 90% of Max Velocity",
+       subtitle = "Over the 2024–25 Training Season",
+       x = "Date", y = "Times reached ≥ 90%") +
+  theme_classic()
+```
+
+```{r}
+# >90% counts for each week instead of each day. Will be a little less noisy than the daily
+weekly_90_counts <- catapult |>
+  filter(anon_id %in% high_distance_players) |>
+  filter(Date >= as.Date("2024-06-30") & Date <= as.Date("2025-07-01")) |>
+  filter(Hit.90.Percent.Max == "Yes") |>
+  distinct(anon_id, Date) |>
+  mutate(week = floor_date(Date, unit = "week")) |>
+  group_by(week) |>
+  summarise(weekly_hits = n())
+
+mean_val <- round(mean(weekly_90_counts$weekly_hits), 1)
+
+ggplot(weekly_90_counts, aes(x = week, y = weekly_hits)) +
+   # Add shaded area for season
+  annotate("rect",
+           xmin = as.Date("2024-08-29"),
+           xmax = as.Date("2024-12-28"),
+           ymin = -Inf, ymax = Inf,
+           alpha = 0.2, fill = "gray") +
+  geom_line(color = "#CFB87C", linewidth = 1) +
+  geom_point(color = "#000000") +
+  geom_smooth(method = "loess", se = FALSE, color = "#565A5C", linetype = "dashed", linewidth = 0.6) +
+  # Monthly x-axis
+  scale_x_date(
+    date_breaks = "1 month",
+    date_labels = "%b\n%Y"
+  ) +
+  labs(title = "Weekly Count of Players Reaching ≥ 90% of Max Velocity",
+       subtitle = paste0("Week Average: ", mean_val),
+       x = "Week", y = "Times reached ≥ 90%") +
+  theme_classic()
+```
+
+* Note: This graph only includes players who reached at least 10000 total game distance yards during the 2024-25 season.
