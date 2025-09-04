@@ -8,7 +8,7 @@ date: "2025-08-28"
 # Authors: Ian McElveen
 # Creation date: 8/28/2025
 
-# LAST UPDATED: 9/2/2025
+# LAST UPDATED: 9/4/2025
 
 # Libraries:
 library(tidyverse)
@@ -70,7 +70,6 @@ model <- glm(Hit90 ~ Total.Distance.Game, data = ndsu_totals, family = binomial)
 summary(model)
 
 exp(coef(model))
-
 ```
 For the NDSU game, it doesn't seem like more opportunity (greater total game distance) leads to hitting 90 percent of max.
 
@@ -432,7 +431,7 @@ ggplot(weekly_90_counts, aes(x = week, y = weekly_hits)) +
   theme_classic()
 ```
 
-* Note: This graph only includes players who reached at least 10000 total game distance yards during the 2024-25 season.
+* Note: This graph only includes players who reached at least 10,000 total game distance yards during the 2024-25 season.
 
 After changing which players were involved in our analysis, we see a much different trend of 90% counts over the season. We see a steady decrease as the season goes on instead of a U shape that we saw before.
 
@@ -538,7 +537,7 @@ ggplot(weekly_90_counts, aes(x = week, y = weekly_hits)) +
 
 
 
-# First, create a combined dataset for injuries with a type variable
+# First, create a combined data set for injuries with a type variable
 injury_type <- bind_rows(
   filter(hamstring_weeks, injury_count == 1) |> mutate(injury_type = "1 injury"),
   filter(hamstring_weeks, injury_count >= 2) |> mutate(injury_type = "2 injuries")
@@ -714,7 +713,7 @@ ggplot(injury_counts_3_weeks, aes(x = sum_last3, y = injury_rate)) +
                                   max(injury_counts_3_weeks$sum_last3, na.rm = TRUE), 1)) +
   labs(
     title = "Injury Rate by ≥90% Counts",
-    subtitle = "Week of an Injury",
+    subtitle = "Last three weeks before injury",
     x = "≥90% Counts",
     y = "Injury Rate (%)"
   ) +
@@ -724,20 +723,63 @@ ggplot(injury_counts_3_weeks, aes(x = sum_last3, y = injury_rate)) +
 ```{r}
 # Test if injury rates are significant
 
-# Create the data frame
-injury_data <- data.frame(
+# Create week of injury data frame
+week_of <- data.frame(
+  hits_90 = c(0, 1, 2, 3, 4),
+  n_injuries = c(7, 7, 0, 1, 0),
+  total_weeks = c(995, 328, 107, 25, 8)
+)
+
+# Poisson regression model
+# This models the injury count based on the number of sprints, accounting for different weeks of exposure
+week_of_model <- glm(n_injuries ~ hits_90, 
+             family = poisson, 
+             data = week_of, 
+             offset = log(total_weeks))
+
+# Get a summary of the results
+summary(week_of_model)
+
+
+
+
+# Create 3 week data frame
+last_3weeks <- data.frame(
   sum_last3 = c(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13),
   n_injuries = c(2, 7, 1, 3, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0),
   total_weeks = c(506, 339, 236, 124, 108, 47, 41, 22, 13, 10, 7, 3, 3, 1)
 )
 
-# Fit the Poisson regression model
+# Poisson regression model
 # This models the injury count based on the number of sprints, accounting for different weeks of exposure
-model <- glm(n_injuries ~ sum_last3, 
+last_3weeks_model <- glm(n_injuries ~ sum_last3, 
              family = poisson, 
-             data = injury_data, 
+             data = last_3weeks, 
              offset = log(total_weeks))
 
 # Get a summary of the results
-summary(model)
+summary(last_3weeks_model)
 ```
+
+Week of Injury:
+p-value = 0.253, not statistically significant
+Cannot conclude that the number of >90% sprint counts in a week is associated with injury risk.
+
+Last 3 weeks before injury:
+p-value = 0.777, very non-significant
+No evidence that cumulative >90% sprint count predicts injury.
+
+
+
+### Conclusion
+
+  After summing each player's game distance across all the games and indicating whether that player hit >90% of their max velocity in any game, we found that more opportunity (total game distance) lead to a higher chance of hitting >90% of their max velocity during any game. Our linear regression model showed that players who ran more distance across games were significantly more likely to reach >90% of their max velocity. The relationship is small per yard, but scales up meaningfully across thousands of yards.
+  
+  Our original analysis considered all players, including players who did not see meaningful game exposure and spring ball participants who did not play during the 2024-25 season. We wanted to see how our analysis would change if we only included players who got adequate game opportunities. We defined this as players who totaled over 10,000 total game distance yards on the season.
+  
+  Performing the same analysis on the reduced player group, we saw some changes in the graphs and numbers. The team-wide average count of times reaching >90% max increased from 11.8 in our original analysis to 13.6. The bigs position group increased from an average of 8.9 to 9.9, the skill group increased from 17.1 to 21.6, however the combo group decreased in the average from 9.3 to 6.5.
+  
+  Our weekly counts of >90% over the course of the season graph displayed a notable difference. In our original analysis, our graph took a U shape with the low point during the in-season when game were being played and the two high points being the pre- and post-seasons. Our new graph showed a steady decrease across the season with the post-season being the low. This makes sense as our spring ball participants accounted for the spring high in the original analysis.
+  
+  Continuing with the analysis, we looked into the relationship of injury and >90% counts. We got similar, insignificant results as our original analysis, leading us to conclude that there is no association between >90% count and injury risk. It is important to note that since there were relatively few amount of hamstring injuries in our data set, insigificant results should be observed with caution.
+  
